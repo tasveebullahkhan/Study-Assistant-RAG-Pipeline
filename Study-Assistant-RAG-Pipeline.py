@@ -8,6 +8,10 @@ from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 
+# Variables of source file
+DOCX_FILE = "CN_Logical_IPv4_IPv6_Notes.docx"
+PPTX_FILE = "Hub, Switch and Router.pptx"
+
 # Loading api key
 dotenv.load_dotenv()
 
@@ -30,11 +34,11 @@ def split_docs(document, chunk_size, chunk_overlap, separators):
     return docs
 
 # Loading the docx and pptx files
-docx_loader = UnstructuredWordDocumentLoader("CN_Logical_IPv4_IPv6_Notes.docx")
+docx_loader = UnstructuredWordDocumentLoader(DOCX_FILE)
 docx_data = docx_loader.load()
 
 # Loading the pptx files
-pptx_loader = UnstructuredPowerPointLoader("Hub, Switch and Router.pptx")
+pptx_loader = UnstructuredPowerPointLoader(PPTX_FILE)
 pptx_data = pptx_loader.load()
 
 # Split the documents in chunks
@@ -107,5 +111,5 @@ chain = (
 )
 
 # Invoking the chain to generate responses
-response = chain.invoke("How does a router's use of IP addresses relate to logical addressing, and how is that different from how a switch uses MAC addresses?")
+response = chain.invoke(input("Ask a Question: "))
 print(response)

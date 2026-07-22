@@ -4,6 +4,11 @@ A retrieval-augmented generation (RAG) system that answers questions about my Co
 ## Why this project
 Used my own semester's notes so i know that weather retrieval and generation actually works or just look like it works. 
 
+## Project structure
+- helpers.py — reusable logic: document loaders, chunking, retriever setup, context formatting, shared constants
+- main.py — the interactive study assistant (ask a question, get a cited answer)
+- evaluate.py — retrieval evaluation script, run independently to check retrieval quality against a known test set
+  
 ## Pipeline
 - Documents (.docx, .pptx)
 - Loaders (UnstructuredWordDocumentLoader, UnstructuredPowerPointLoader)
@@ -29,6 +34,12 @@ While testing retrieval quality for the question "What is a MAC address?" I only
 
 This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually help me understand the difference between pipeline bug and content gap.
 
+# Evaluation
+- To check the retrievals correctness "evaluate.py" is used. It checks that the retrieved sources and expected sources matches each other so the retrieved information is from the correct source. It checks on the basis of presence(uniqueness) of source not how many times the source is actually used. So even if the source is used more than once due to multiple chunks using the source multiple times it wouldn't matter and ignore those duplicates or order.
+- There are 4 single source cases and one multiple source case
+- Current result is "5/5 Passed"
+- This is just a simple hand built metric not a sophisticated LLM-graded eval like RAGAS.
+  
 ## Bugs hit and fixed along the way
 - Wrong docx package was installed but uninstalled it and installed right package (python-docx)
 - Combining the documents into a single list after chunking using ".extend()" method return none instead use concatenation

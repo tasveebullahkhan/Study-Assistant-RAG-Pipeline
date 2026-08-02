@@ -61,9 +61,9 @@ of guessing.""",
 course_crew = Crew(
     tasks=[course_task],
     agents=[course_agent],
-    process=Process.sequential
+    process=Process.sequential,
 )
 
 # Getting the agents output and printing it
-result = course_crew.kickoff(inputs={"question": "How does routing work on the internet?"})
-print(result.raw)
+result1 = course_crew.kickoff(inputs={"question": "What is IPv4?"})
+print(result1.raw)

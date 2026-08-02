@@ -37,7 +37,7 @@ course_agent = Agent(
     backstory=""" You have 15 years of experience in Teaching computer 
     networks. First check your notes first if answer is present there than
     use that as a source. If it is not present there than cite other sources.
-    Always cite sources at the last. """,
+    Always cite sources at the last.""",
     llm=llm,
     tools=[search_course_notes]
 )
@@ -45,7 +45,15 @@ course_agent = Agent(
 # Task that is needed to be done
 course_task = Task(
     description="Answer accurately according to this asked question regarding computer networks: {question}",
-    expected_output="A 10 line answer in bulletpoints form with source cited at the end. Keeping in mind the context of the question either being related to the provided source files if yes than cite those sources otherwise cite sources from where ever the question is being answered.",
+    expected_output=
+    """Answer in two clearly labeled parts:
+    1. 'From your course notes:' — only include information actually 
+        retrieved from the search tool, cited by the specific document name.
+    2. 'General knowledge (not in your course notes):' — anything else, 
+        with a note that this wasn't verified against your course material.
+    3. 'Source Citation:' After answering cite sources from where that part is cited after that answer another part and cite source of another part.
+    If the tool returns no relevant results, state that clearly instead 
+of guessing.""",
     agent=course_agent
 )
 
@@ -57,5 +65,5 @@ course_crew = Crew(
 )
 
 # Getting the agents output and printing it
-result = course_crew.kickoff(inputs={"question":"What is the capital of France?"})
+result = course_crew.kickoff(inputs={"question": "How does routing work on the internet?"})
 print(result.raw)

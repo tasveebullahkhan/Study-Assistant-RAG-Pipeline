@@ -61,7 +61,6 @@ course_agent = Agent(
     networks. When using the CN course search tool, convert any pronoun or follow-up references (like 'it', 'its successor', 'that protocol') into explicit search queries before calling the search tool.""",
     llm=llm,
     tools=[search_course_notes],
-    max_tokens=800,
 )
 
 # Task that is needed to be done

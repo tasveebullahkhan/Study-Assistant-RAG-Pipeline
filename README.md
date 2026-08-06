@@ -2,12 +2,13 @@
 A retrieval-augmented generation (RAG) system that answers questions about my Computer Networks coursework, grounded in my own study materials rather than the model's general knowledge. Every answer cites which source document it came from.
 
 ## Why this project
-Used my own semester's notes so i know that weather retrieval and generation actually works or just look like it works. 
+Used my own semester's notes so I know that weather retrieval and generation actually work or just look like it works. 
 
 ## Project structure
 - helpers.py — reusable logic: document loaders, chunking, retriever setup, context formatting, shared constants
 - main.py — the interactive study assistant (ask a question, get a cited answer)
 - evaluate.py — retrieval evaluation script, run independently to check retrieval quality against a known test set
+- agent.py — CrewAI agent layer wraps the retriever as a tool and conversational memory is added.
   
 ## Pipeline
 - Documents (.docx, .pptx)
@@ -30,29 +31,43 @@ Two different formats deliberately, to force the loader and chunking logic to ha
 Different chunk settings per format. The docx are chunked at 2000 chars with 200 overlap so multi-part explanations don't get cut off mid-concept. The pptx is one distinct topic per slide, so it's chunked smaller 1000 chars with no overlap. 20% rule of the chunk_size is applied for chunk overlap
 
 ## A real limitation I found
-While testing retrieval quality for the question "What is a MAC address?" I only found one result that was actually relevant the rest were not. The reason was not the "search_type" or retrieval bug but it was because the documents itself did not contain enough of the information about MAC addressing. This was the reason why I used files of my own and that is the why of the project. Changing the "search_type" would not fix anything if the material itself was not enough.
+While testing retrieval quality for the question "What is a MAC address?" I only found one result that was actually relevant the rest were not. The reason was not the "search_type" or retrieval bug, but it was because the documents itself did not contain enough of the information about MAC addressing. This was the reason why I used files of my own and that is the why of the project. Changing the "search_type" would not fix anything if the material itself was not enough.
 
-This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually help me understand the difference between pipeline bug and content gap.
+This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually helps me understand the difference between pipeline bug and content gap.
 
-# Evaluation
-- To check the retrievals correctness "evaluate.py" is used. It checks that the retrieved sources and expected sources matches each other so the retrieved information is from the correct source. It checks on the basis of presence(uniqueness) of source not how many times the source is actually used. So even if the source is used more than once due to multiple chunks using the source multiple times it wouldn't matter and ignore those duplicates or order.
+## Evaluation
+- To check the retrievals correctness "evaluate.py" is used. It checks that the retrieved sources and expected sources matches each other, so the retrieved information is from the correct source. It checks on the basis of presence(uniqueness) of source not how many times the source is actually used. So even if the source is used more than once due to multiple chunks using the source multiple times it wouldn't matter and ignore those duplicates or order.
 - There are 4 single source cases and one multiple source case
 - Current result is "5/5 Passed"
-- This is just a simple hand built metric not a sophisticated LLM-graded eval like RAGAS.
+- This is just a simple hand-built metric not a sophisticated LLM-graded eval like RAGAS.
+
+## Agent Layer
+`agent.py` adds a CrewAI agent that decide for itself weather a question needs course notes to answer or can be answered from general knowledge and state weather the answer was from course notes or general knowledge to avoid blending as if it were grounded.
+- One agent, one tool (the retriever from `helpers.py`, wrapped)
+- Task forces three labeled answers, one answer from course material, second from llm's own knowledge and third is source citation.
+- Conversational memory is hand built not CrewAI's built-in `memory=True` a simple side-step. (Dependency explained below)
+
+### Provider notes
+Went through three LLM providers before landing on one that actually held up: Gemini (chat completions hit a free-tier quota wall — separate from the embeddings API, which worked fine), Groq (fast, but its free tier couldn't sustain more than 1-2 questions before rate-limiting), and finally Mistral, which has been stable for actual multi-turn testing
   
+### A real limitation I hit
+CrewAI's built in memory system's default is OpenAI embedder, and its Google embedder option depends on the `google-generativeai` package which Google has fully deprecated. Current short-term memory is a running list of prior Q&A pairs get joined into a string and passed into the `{history}` placeholder on every call
+    
 ## Bugs hit and fixed along the way
 - Wrong docx package was installed but uninstalled it and installed right package (python-docx)
-- Combining the documents into a single list after chunking using ".extend()" method return none instead use concatenation
-- ChatPromptTemplate.from_messages(["human", message]) created two seprate messages instead of one
+- Combining the documents into a single list after chunking using ". extend()" method return none instead use concatenation
+- ChatPromptTemplate.from_messages(["human", message]) created two separate messages instead of one
 - "persist_dir_path" pointed at a literal string `"os.getcwd"` instead of an actual call to os.getcwd()
 
 ## Stack
 - langchain-community, langchain-text-splitters, langchain-chroma, langchain-core
 - langchain-google-genai (gemini-embedding-001 for embeddings, gemini-3.1-flash-lite-preview for generation)
 - ChromaDB (local, persisted)
+- crewai, crewai-tools (agent orchestration)
+- Mistral API (mistral-small-latest) — used for the agent layer; Groq's free tier couldn't sustain more than 1-2 questions per session, Gemini chat had a separate quota issue (see Agent layer section)
 
 ## Running it
-1. Set a Gemini API key in a ".env" file (`GOOGLE_API_KEY=...`)
+1. Set a Gemini API key in a ". env" file (`GOOGLE_API_KEY=...`)
 2. pip install -r requirements.txt
-3. Place source documents in the project directory. Add your own source documents this repo doesn't include the original files (lecture slides are the instructor's material, not mine to redistribute). Place a ".docx" and a ".pptx" of your own in the project directory, and update the filenames in the script to match.
+3. Place source documents in the project directory. Add your own source documents this repo doesn't include the original files (lecture slides are the instructor's material, not mine to redistribute). Place a ".docx" and a ".pptx" of your own in the project directory and update the filenames in the script to match.
 4. Run the script — first run builds and persists the vector store, subsequent runs load the existing one

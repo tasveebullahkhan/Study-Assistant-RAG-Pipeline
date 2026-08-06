@@ -67,7 +67,7 @@ CrewAI's built in memory system's default is OpenAI embedder, and its Google emb
 - Mistral API (mistral-small-latest) — used for the agent layer; Groq's free tier couldn't sustain more than 1-2 questions per session, Gemini chat had a separate quota issue (see Agent layer section)
 
 ## Running it
-1. Set a Gemini API key in a ". env" file (`GOOGLE_API_KEY=...`)
+1. Set a Gemini API key in a ". env" file `GOOGLE_API_KEY=...`, `MISTRAL_API_KEY=...` (only needed for `agent.py`)
 2. pip install -r requirements.txt
 3. Place source documents in the project directory. Add your own source documents this repo doesn't include the original files (lecture slides are the instructor's material, not mine to redistribute). Place a ".docx" and a ".pptx" of your own in the project directory and update the filenames in the script to match.
-4. Run the script — first run builds and persists the vector store, subsequent runs load the existing one
+4. Run `main.py` for the core RAG assistant, or `agent.py` for the agent layer with tool-use judgment and conversational memory — first run builds and persists the vector store, subsequent runs load the existing one

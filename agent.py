@@ -16,7 +16,9 @@ retriever = build_retriever(DOCX_FILE, PPTX_FILE, k=2)
 def search_course_notes(question: str) -> str:
     """Searches and retrieves relevant text passages from the Computer
     Networks course notes (DOCX and PPTX files) based on a search query
-    or question."""
+    or question. When using the CN course search tool, convert any
+    pronoun or follow-up references (like 'it', 'its successor', 'that protocol')
+    into explicit search queries before calling the search tool."""
 
     # Getting the final output of the retriever
     docs = retriever.invoke(f"{question}")
@@ -96,4 +98,4 @@ while True:
     if user_question.lower() == "exit":
         break
     answer = ask(user_question)
-    print(f"\nAssistant: {answer}")
+    print(f"\nAssistant:\n{answer}")

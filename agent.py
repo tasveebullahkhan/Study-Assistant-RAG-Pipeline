@@ -1,6 +1,7 @@
 # Import Libraries
 import os
 import dotenv
+import traceback
 from helpers import build_retriever, DOCX_FILE, PPTX_FILE, format_docs
 from crewai import Agent, Task, Crew, LLM, Process
 from crewai.tools import tool
@@ -36,14 +37,22 @@ def ask(question: str) -> str:
         history_text = "No previous conversations"
 
     # Getting the output and history of the conversation
-    result = course_crew.kickoff(inputs={
-        "question":question,
-        "history_text":history_text
-    })
+    try:
+        result = course_crew.kickoff(inputs={
+            "question":question,
+            "history_text":history_text
+        })
+    except Exception as e:
+        # Getting full details in terminal
+        traceback.print_exc()
+
+        # handling any error that appears during kickoff()
+        return f"Error couldn't get a response for {e}. Try again"
 
     # Add this conversation to the history
     conversation_history.append(f"Question: {question}\n Answer: {result.raw}")
     return result.raw
+    
 
 # An llm that will generate responses 
 llm = LLM(
@@ -92,10 +101,11 @@ course_crew = Crew(
 )
 
 # Getting the agents output and printing it
-print("Ask me any question (Type 'exit' if you want to quit).")
-while True:
-    user_question = input("\nYou: ")
-    if user_question.lower() == "exit":
-        break
-    answer = ask(user_question)
-    print(f"\nAssistant:\n{answer}")
+if __name__ == "__main__":
+    print("Ask me any question (Type 'exit' if you want to quit).")
+    while True:
+        user_question = input("\nYou: ")
+        if user_question.lower() == "exit":
+            break
+        answer = ask(user_question)
+        print(f"\nAssistant:\n{answer}")

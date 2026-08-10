@@ -33,6 +33,6 @@ for outcome in expected_outcomes:
     if (metadata_source_set == test_set):
         passed_cases += 1 
     else:
-        print(f"Failed Case qestion(s) is: {outcome['question']}")
+        print(f"Failed Case question(s) is: {outcome['question']}")
 
 print(f"Passed {passed_cases}/{len(expected_outcomes)}")

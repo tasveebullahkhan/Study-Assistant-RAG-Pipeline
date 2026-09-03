@@ -1,8 +1,13 @@
-from agent import ask
+import time
+from agent import ask, course_agent
 
 # List of expected outcomes
 expected_outcomes = [
-    {"question":"What is network layer in computer networks", "Source Citation":["General Knowledge (External)"], "in_notes":False}
+    {"question":"What is BGP?", "Source Citation":["General Knowledge (External)"], "in_notes":False},
+    {"question":"What is ipv4?", "Source Citation":["CN_Logical_IPv4_IPv6_Notes.docx"], "in_notes":True},
+    {"question":"What is a switch?", "Source Citation":["Hub, Switch and Router.pptx"], "in_notes":True},
+    {"question":"What is a Https?", "Source Citation":["General Knowledge (External)"], "in_notes":False},
+    {"question":"What is network layer?", "Source Citation":["CN_Logical_IPv4_IPv6_Notes.docx", "Hub, Switch and Router.pptx"], "in_notes":True},
 ]
 
 # Loop each outcome in expected_outcomes
@@ -38,11 +43,12 @@ for outcome in expected_outcomes:
     # Debug lines
     print(f"notes_ok={notes_ok}, source_ok={source_ok}")
     print(answer)
+    print(course_agent.tools_results)
 
     # Deciding the pass/fail of the test case
     if notes_ok and source_ok:
         passed_cases += 1
     else:
         print(f"Failed case question is: {outcome['question']}")
-
+        
 print(f"Passed {passed_cases}/{tested_cases}")

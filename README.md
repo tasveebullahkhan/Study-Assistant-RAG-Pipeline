@@ -59,6 +59,22 @@ CrewAI's built in memory system's default is OpenAI embedder, and its Google emb
 - ChatPromptTemplate.from_messages(["human", message]) created two separate messages instead of one
 - "persist_dir_path" pointed at a literal string `"os.getcwd"` instead of an actual call to os.getcwd()
 
+## Agent Evaluation
+- To check the agents' correctness "evaluate_agent.py" is used. It first checks whether answer is found in our course notes or not on the basis of which it tells us if answer is from course notes or general knowledge. It then checks if the source cited is "General Knowledge (External)" for an outcome on the basis of that tell us whether answer is from general knowledge or not. Finally, if both cases are true test is passed otherwise failed.
+- There are total 5 cases 4 single source cases and one multiple source case
+- Among 4 single source cases 2 are "in_notes" cases and two are "not-in-notes" cases
+- The multiple source case contains both notes files
+- Current result is "5/5 Passed" (Provided that each of them is run separately due to some limitations discussed below)
+- The file name is `evaluate_agent.py` to execute the test run `python evaluate_agent.py`.
+
+## Agent Limitation
+- The limitation I faced is that on running test cases (or agent.py and asking one question) the evaluation worked fine. But on running multiple cases together it showed rate limit error.
+- The first thing i observed is that question that are answered from the notes contains one tool call while general knowledge answered questions contain 4 tool calls (BGP = 4 tool calls, IPv4 = 1 tool call)
+- The actual limit of the model from dashboard was: 0.17 RPS, 20,000 tokens/minute. So, I added retry only once after which questions that are not from notes or require multiple sources when evaluated resulted in passed cases.
+- This is because of relevance so for a topic outside the notes the llm calls the tool 4 times since retrieved result was not relevant to the asked question.
+- However, on running all the cases together it still showed the same error. So, I reduced the retrying to 0 after first attempt and added a time gap of 20 seconds between each iteration and it still showed rate limit error.
+- So finally, I ran all the test cases one by one (multiple times) due to this limitation and all of them passed (Free tier limit not a code bug).
+  
 ## Stack
 - langchain-community, langchain-text-splitters, langchain-chroma, langchain-core
 - langchain-google-genai (gemini-embedding-001 for embeddings, gemini-3.1-flash-lite-preview for generation)

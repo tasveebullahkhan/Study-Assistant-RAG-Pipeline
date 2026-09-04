@@ -9,6 +9,7 @@ Used my own semester's notes so I know that weather retrieval and generation act
 - main.py — the interactive study assistant (ask a question, get a cited answer)
 - evaluate.py — retrieval evaluation script, run independently to check retrieval quality against a known test set
 - agent.py — CrewAI agent layer wraps the retriever as a tool and conversational memory is added.
+- evaluate_agent.py — Agent evaluation script, to check agents output quality against a known test.
   
 ## Pipeline
 - Documents (.docx, .pptx)

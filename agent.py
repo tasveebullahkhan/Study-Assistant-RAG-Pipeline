@@ -70,8 +70,8 @@ course_agent = Agent(
     networks. When using the CN course search tool, convert any pronoun 
     or follow-up references (like 'it', 'its successor', 'that protocol')
     into explicit search queries before calling the search tool. After
-    making your first attempt of the answer strictly retry only once in order to
-    avoid rate limit error and give your
+    making your first attempt of the answer strictly (retry 0 times) 
+    don't retry at all in order to avoid rate limit error and give your
     answer to the question.""",
     llm=llm,
     tools=[search_course_notes],

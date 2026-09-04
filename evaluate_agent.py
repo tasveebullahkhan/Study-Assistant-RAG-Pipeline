@@ -50,5 +50,7 @@ for outcome in expected_outcomes:
         passed_cases += 1
     else:
         print(f"Failed case question is: {outcome['question']}")
-        
+
+    # Gap of 10 seconds between each iteration
+    time.sleep(20)
 print(f"Passed {passed_cases}/{tested_cases}")

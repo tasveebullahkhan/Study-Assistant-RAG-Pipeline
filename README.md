@@ -35,7 +35,7 @@ While testing retrieval quality for the question "What is a MAC address?" I only
 
 This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually helps me understand the difference between pipeline bug and content gap.
 
-## Evaluation
+## Evaluation (evaluate.py)
 - To check the retrievals correctness "evaluate.py" is used. It checks that the retrieved sources and expected sources matches each other, so the retrieved information is from the correct source. It checks on the basis of presence(uniqueness) of source not how many times the source is actually used. So even if the source is used more than once due to multiple chunks using the source multiple times it wouldn't matter and ignore those duplicates or order.
 - There are 4 single source cases and one multiple source case
 - Current result is "5/5 Passed"
@@ -59,7 +59,7 @@ CrewAI's built in memory system's default is OpenAI embedder, and its Google emb
 - ChatPromptTemplate.from_messages(["human", message]) created two separate messages instead of one
 - "persist_dir_path" pointed at a literal string `"os.getcwd"` instead of an actual call to os.getcwd()
 
-## Agent Evaluation
+## Agent Evaluation (evaluate_agent.py)
 - To check the agents' correctness "evaluate_agent.py" is used. It first checks whether answer is found in our course notes or not on the basis of which it tells us if answer is from course notes or general knowledge. It then checks if the source cited is "General Knowledge (External)" for an outcome on the basis of that tell us whether answer is from general knowledge or not. Finally, if both cases are true test is passed otherwise failed.
 - There are total 5 cases 4 single source cases and one multiple source case
 - Among 4 single source cases 2 are "in_notes" cases and two are "not-in-notes" cases

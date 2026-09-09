@@ -79,3 +79,46 @@ def build_retriever(docx_file, pptx_file, k):
     )
 
     return retriever
+
+# Building the vector store (removing the "k" for more control over client requests)
+def build_vector_store(docx_file, pptx_file):
+
+    # Loading the docx and pptx files
+    docx_loader = UnstructuredWordDocumentLoader(docx_file)
+    docx_data = docx_loader.load()
+
+    # Loading the pptx files
+    pptx_loader = UnstructuredPowerPointLoader(pptx_file)
+    pptx_data = pptx_loader.load()
+
+    # Split the documents in chunks
+    docx_docs = split_docs(docx_data, 2000, 200, ["\n\n", "\n", " "])
+    pptx_docs = split_docs(pptx_data, 1000, 0, ["\n\n", "\n", " ", ""])
+
+    # Combing all documents in one list
+    documents = docx_docs + pptx_docs
+
+    # Set up google gemini embedding model to embed the docs
+    embedding_function = GoogleGenerativeAIEmbeddings(model = "gemini-embedding-001")
+
+    # Intitialize an chroma database
+    persist_dir_path = os.path.join(os.getcwd(), "chromadb")
+
+    # Loading existing vectorstore
+    if os.path.exists(persist_dir_path) and os.listdir(persist_dir_path):
+        vector_store = Chroma(
+        embedding_function= embedding_function,
+        persist_directory= persist_dir_path
+    )
+        print("Database successfully updated locally!")
+
+    # First run create and embed
+    else:
+        vector_store = Chroma.from_documents(
+            documents,
+            embedding = embedding_function,
+            persist_directory = persist_dir_path,
+        )
+        print("Database successfully built locally!")
+
+    return vector_store

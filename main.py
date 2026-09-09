@@ -10,6 +10,7 @@ Answer the following question using the context provided.
 Also cite the source document used for its answer.
 The name of source must be same as file name used for the answer.
 No guessing by the model or creating your own name.
+If the answer is "The provided text does not contain information about topic" then in the source mention "No source contain this information"
 
 Context:
 {context}

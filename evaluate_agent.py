@@ -29,21 +29,16 @@ for outcome in expected_outcomes:
     # Checking if answer is found in our course notes
     not_mentioned = "Not mentioned in your course notes" in answer
     if outcome["in_notes"]:
-        notes_ok = not not_mentioned # not_mentioned == False
+        notes_ok = not not_mentioned
     else:
-        notes_ok = not_mentioned # not_mentioned == True
+        notes_ok = not_mentioned
 
     # Checking if source cited are from course notes
     source_general = "General Knowledge (External)" in answer
     if outcome["in_notes"]:
         source_ok = all(source in answer for source in outcome["Source Citation"])
     else:
-        source_ok = source_general # source_general == True
-
-    # Debug lines
-    print(f"notes_ok={notes_ok}, source_ok={source_ok}")
-    print(answer)
-    print(course_agent.tools_results)
+        source_ok = source_general
 
     # Deciding the pass/fail of the test case
     if notes_ok and source_ok:

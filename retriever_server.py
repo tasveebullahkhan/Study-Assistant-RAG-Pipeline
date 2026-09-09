@@ -1,13 +1,13 @@
 import asyncio
 import mcp
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from helpers import build_vector_store, format_docs, DOCX_FILE, PPTX_FILE
 
 # Vector store of notes to avoid building it repeatedly
 vector_store = build_vector_store(DOCX_FILE, PPTX_FILE)
 
 # Instantiating mcp server
-mcp = FastMCP("Notes Retriever")
+mcp = MCPServer("Notes Retriever")
 
 # Tool that will retrieve k number of chunks according to clients needs
 @mcp.tool()

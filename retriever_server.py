@@ -26,13 +26,15 @@ async def notes_retriever(query:str, k: int = 3):
     """
 
     # Retriver controlling "k" requests based on clients needs
-    retriever = await asyncio.to_thread(vector_store.similarity_search, query, k)
+    retriever = await asyncio.to_thread(vector_store.similarity_search_with_relevance_scores, query, k)
 
     # Checking if chunks are found and returning value accordingly
-    if retriever == []:
+    if retriever == [] or retriever[0][1] < 0.5:
         return "No relevant notes found for this query. This knowledge base only covers CN121 course material."
     else:
-        result = format_docs(retriever)
+        result = ""
+        for doc, score in retriever:
+            result += f"\n\n Source: {doc.metadata['source']}\n{doc.page_content}\n Score:{score}"
         return result
 
 if __name__ == "__main__":

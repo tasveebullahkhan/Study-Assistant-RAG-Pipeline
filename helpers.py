@@ -1,5 +1,6 @@
 # Import Libraries
 import os
+import sys
 import dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import UnstructuredWordDocumentLoader, UnstructuredPowerPointLoader
@@ -28,7 +29,7 @@ def split_docs(document, chunk_size, chunk_overlap, separators):
         separators= separators
     )
     docs = splitter.split_documents(document)
-    print(f"total no of chunks is {len(docs)}")
+    print(f"total no of chunks is {len(docs)}",file=sys.stderr)
     return docs
 
 # Building the retriever
@@ -110,7 +111,7 @@ def build_vector_store(docx_file, pptx_file):
         embedding_function= embedding_function,
         persist_directory= persist_dir_path
     )
-        print("Database successfully updated locally!")
+        print("Database successfully updated locally!", file=sys.stderr)
 
     # First run create and embed
     else:
@@ -119,6 +120,6 @@ def build_vector_store(docx_file, pptx_file):
             embedding = embedding_function,
             persist_directory = persist_dir_path,
         )
-        print("Database successfully built locally!")
+        print("Database successfully built locally!", file=sys.stderr)
 
     return vector_store

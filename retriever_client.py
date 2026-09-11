@@ -42,13 +42,13 @@ async def call_tool_from_mcp(tool_name:str, arguments:dict) -> str:
             print(f"Conversation result: {content}")
             return str(content)
         
-# asyncio.run(get_tool_from_mcp())
+asyncio.run(get_tool_from_mcp())
 
 # Enter your query as value of "query" key to validate.
 asyncio.run(
     call_tool_from_mcp(
         "notes_retriever",
-        {"query": "What is IPv4?",
+        {"query": "What is BGP?",
         "k": 3,}
     )
 )

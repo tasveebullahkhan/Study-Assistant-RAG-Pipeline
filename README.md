@@ -4,7 +4,7 @@ A retrieval-augmented generation (RAG) system that answers questions about my Co
 ## Development Roadmap
 * ✅ Phase 1 — Advanced RAG Complete.
 * ✅ Phase 2 — AI Agents + crewAI.
-* ⏳ Phase 3 — MCP server — with DataCamp's "Introduction to MCP" as guided prep.
+* ✅ Phase 3 — MCP server — with DataCamp's "Introduction to MCP" as guided prep.
 * ⏳ Phase 4 — Observability/LangSmith
 * ⏳ Phase 5 — Multimodal RAG
 * ⏳ Phase 6 — AI Safety/red teaming
@@ -55,6 +55,10 @@ Used my own semester's notes so I know that weather retrieval and generation act
 * Conversational memory is hand built not CrewAI's built-in `memory=True` a simple side-step.
 * **Provider notes:** Went through three LLM providers before landing on one that actually held up: Gemini (chat completions hit a free-tier quota wall — separate from the embeddings API, which worked fine), Groq (fast, but its free tier couldn't sustain more than 1-2 questions before rate-limiting), and finally Mistral, which has been stable for actual multi-turn testing.
 
+## MCP Server (Phase-3)
+`retriever_server.py` adds an MCP server. The server consists of a tool (notes_retriever) that retrieves chunks on the basis of similarity. This tool only covers retrieval not the whole agent because its purpose is not to give llm generated output client already has that so the retrieved chunks have more importance thus we only wrapped retrieval as a tool. Since client can ask for any number of chunks so I updated the retrieval function (of phase 1) to build just vector store so that on server side we can identify the number of parameters (k) and client can enter any number of chunks according to their needs. Conversation result is formatted by reusing format_docs from `helpers.py`. 
+ **Relevance threshold (Content Gap detection for MCP tool):** `similarity_search` alone always returns the top-k closest matches regardless of whether they're actually relevant — an off-topic query (e.g. "cooking recipe of burger") still gets *something* back, since vector similarity search doesn't have a built-in "nothing matches" case. To catch this, `notes_retriever` uses `similarity_search_with_relevance_scores` and checks the top result's score against a 0.5 threshold before returning chunks. Below 0.5, the tool returns a scope-aware message ("This knowledge base only covers CN121 course material") instead of irrelevant chunks. The 0.5 cutoff was derived empirically, not guessed — tested against known in-scope queries across both indexed docs (IPv4/IPv6 doc: ~0.56–0.61, router/switch/hub doc: ~0.56+, a cross-document query touching both: ~0.58) versus known out-of-scope queries (Border Gateway Protocol, a networking-adjacent topic *not* covered in these notes: ~0.44; an unrelated "burger recipe" query: ~0.32). The gap between relevant (~0.56+) and irrelevant (~0.44 and below) held consistently across documents, which is why 0.5 was chosen as the cutoff.
+
 ## Testing & Evaluation
 ### Base Retrieval (`evaluate.py`)
 * To check the retrievals correctness `evaluate.py` is used. It checks that the retrieved sources and expected sources matches each other, so the retrieved information is from the correct source. 
@@ -68,6 +72,9 @@ Used my own semester's notes so I know that weather retrieval and generation act
 * Current result is "5/5 Passed" (Provided that each of them is run separately due to some limitations discussed below).
 * To execute the test run `python evaluate_agent.py`.
 
+### MCP Tool Testing (`retriever_client.py`)
+* To validate the working of our MCP server I made this client which has two functions one to just list tool and other to call the tool and get its output from MCP server. Its purpose is to just test the working of the server thus query is hardcoded, but you can enter any query in the key to test its working. The queries in scope of notes that I used to validate are "What is IPv4?" and "What is a router?". The query "How does a router's use of IP addresses relate to logical addressing and how is that different from how a switch uses MAC addresses?" test across all the files of the course notes. The queries that were out of scope are "What is BGP?" and "What is cooking recipe of burger?" (Even though BGP is related to computer networks it is not covered in the course notes so keep that in mind).
+
 ## Developer Log: Limitations & Bugs
 * **A real limitation I found (Content Gap vs Bug):** While testing retrieval quality for the question "What is a MAC address?" I only found one result that was actually relevant the rest were not. The reason was not the "search_type" or retrieval bug, but it was because the documents itself did not contain enough of the information about MAC addressing. This was the reason why I used files of my own and that is the why of the project. Changing the "search_type" would not fix anything if the material itself was not enough. This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually helps me understand the difference between pipeline bug and content gap.
   
@@ -80,3 +87,4 @@ Used my own semester's notes so I know that weather retrieval and generation act
   * Combining the documents into a single list after chunking using `.extend()` method return none instead use concatenation
   * `ChatPromptTemplate.from_messages(["human", message])` created two separate messages instead of one
   * `persist_dir_path` pointed at a literal string `"os.getcwd"` instead of an actual call to `os.getcwd()`
+  * 

@@ -1,3 +1,4 @@
+# Intergrated Langsmith in retriever
 # Import libraries
 from helpers import build_retriever, format_docs, DOCX_FILE, PPTX_FILE
 from langchain_google_genai import GoogleGenerativeAI

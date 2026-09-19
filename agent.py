@@ -1,13 +1,29 @@
 # Import Libraries
 import os
-import dotenv
+from dotenv import load_dotenv
 import traceback
 from helpers import build_retriever, DOCX_FILE, PPTX_FILE, format_docs
-from crewai import Agent, Task, Crew, LLM, Process
+from crewai import Agent, Task, Crew, Process
+from crewai.llm import LLM
 from crewai.tools import tool
+from langsmith.integrations.otel import OtelSpanProcessor
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.instrumentation.crewai import CrewAIInstrumentor
+from openinference.instrumentation.litellm import LiteLLMInstrumentor
 
-# Load api keys
-dotenv.load_dotenv()
+# Loading environment variables
+load_dotenv()
+
+# Configuring langsmith otel tracer
+provider = TracerProvider()
+trace.set_tracer_provider(provider)
+provider.add_span_processor(OtelSpanProcessor())
+
+# To trace Agent or task delegations in Crewai
+CrewAIInstrumentor().instrument(tracer_provider = provider)
+# To trace underlying llm calls made via litellm
+LiteLLMInstrumentor().instrument(tracer_provider = provider)
 
 # Build the retriever once 
 retriever = build_retriever(DOCX_FILE, PPTX_FILE, k=2)
@@ -56,9 +72,9 @@ def ask(question: str) -> str:
 
 # An llm that will generate responses 
 llm = LLM(
-    model="mistral/mistral-small-latest",
-    temperature=0,
-    api_key=os.environ["MISTRAL_API_KEY"],
+    model="groq/openai/gpt-oss-120b",
+    temperature=0.0,
+    api_key=os.environ["GROQ_API_KEY"],
     max_tokens=800
 )
 

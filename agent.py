@@ -1,29 +1,14 @@
 # Import Libraries
 import os
-from dotenv import load_dotenv
 import traceback
 from helpers import build_retriever, DOCX_FILE, PPTX_FILE, format_docs
 from crewai import Agent, Task, Crew, Process
 from crewai.llm import LLM
 from crewai.tools import tool
-from langsmith.integrations.otel import OtelSpanProcessor
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.instrumentation.crewai import CrewAIInstrumentor
-from openinference.instrumentation.litellm import LiteLLMInstrumentor
+from observability import setup_tracing
 
-# Loading environment variables
-load_dotenv()
-
-# Configuring langsmith otel tracer
-provider = TracerProvider()
-trace.set_tracer_provider(provider)
-provider.add_span_processor(OtelSpanProcessor())
-
-# To trace Agent or task delegations in Crewai
-CrewAIInstrumentor().instrument(tracer_provider = provider)
-# To trace underlying llm calls made via litellm
-LiteLLMInstrumentor().instrument(tracer_provider = provider)
+# To trace the agent,this function load environment variables internally.
+setup_tracing()
 
 # Build the retriever once 
 retriever = build_retriever(DOCX_FILE, PPTX_FILE, k=2)
@@ -46,6 +31,16 @@ def search_course_notes(question: str) -> str:
 # To store memory of the previous conversations
 conversation_history = []
 def ask(question: str) -> str:
+    """Function to store memory of previous conversations and provide
+    next answer on the basis of that memory.
+
+    Args:
+        question: The query asked by the user
+
+    Returns:
+        A string answer from llm based on previous memory
+
+    """
     # Checking if there is acutally previous conversation
     if conversation_history:
         history_text = "\n".join(conversation_history)

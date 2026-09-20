@@ -1,13 +1,14 @@
 # Import Libraries
 import os
-import dotenv
 import traceback
 from helpers import build_retriever, DOCX_FILE, PPTX_FILE, format_docs
-from crewai import Agent, Task, Crew, LLM, Process
+from crewai import Agent, Task, Crew, Process
+from crewai.llm import LLM
 from crewai.tools import tool
+from observability import setup_tracing
 
-# Load api keys
-dotenv.load_dotenv()
+# To trace the agent,this function load environment variables internally.
+setup_tracing()
 
 # Build the retriever once 
 retriever = build_retriever(DOCX_FILE, PPTX_FILE, k=2)
@@ -30,6 +31,16 @@ def search_course_notes(question: str) -> str:
 # To store memory of the previous conversations
 conversation_history = []
 def ask(question: str) -> str:
+    """Function to store memory of previous conversations and provide
+    next answer on the basis of that memory.
+
+    Args:
+        question: The query asked by the user
+
+    Returns:
+        A string answer from llm based on previous memory
+
+    """
     # Checking if there is acutally previous conversation
     if conversation_history:
         history_text = "\n".join(conversation_history)
@@ -56,9 +67,9 @@ def ask(question: str) -> str:
 
 # An llm that will generate responses 
 llm = LLM(
-    model="mistral/mistral-small-latest",
-    temperature=0,
-    api_key=os.environ["MISTRAL_API_KEY"],
+    model="groq/openai/gpt-oss-120b",
+    temperature=0.0,
+    api_key=os.environ["GROQ_API_KEY"],
     max_tokens=800
 )
 

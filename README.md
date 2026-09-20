@@ -1,22 +1,23 @@
 # Study-Assistant-RAG-Pipeline
 A retrieval-augmented generation (RAG) system that answers questions about my Computer Networks coursework, grounded in my own study materials rather than the model's general knowledge. Every answer cites which source document it came from.
-
+ 
 ## Development Roadmap
 * ✅ Phase 1 — Advanced RAG Complete.
 * ✅ Phase 2 — AI Agents + crewAI.
 * ✅ Phase 3 — MCP server — with DataCamp's "Introduction to MCP" as guided prep.
-* ⏳ Phase 4 — Observability/LangSmith
+* ✅ Phase 4 — Observability/LangSmith
 * ⏳ Phase 5 — Multimodal RAG
 * ⏳ Phase 6 — AI Safety/red teaming
 * ⏳ Phase 7 — Fine-tuning (Phi-3 mini)
 
 ## Why this project
 Used my own semester's notes so I know that weather retrieval and generation actually work or just look like it works. 
-
+ 
 ## Project structure
 * `helpers.py` — reusable logic: document loaders, chunking, retriever setup, context formatting, shared constants
 * `main.py` — the interactive study assistant (ask a question, get a cited answer)
 * `agent.py` — CrewAI agent layer wraps the retriever as a tool and conversational memory is added.
+* `observability.py` — LangSmith/OpenTelemetry tracing setup (`setup_tracing()`), kept separate from agent logic
 * `evaluate.py` — retrieval evaluation script, run independently to check retrieval quality against a known test set
 * `evaluate_agent.py` — Agent evaluation script, to check agents output quality against a known test.
 * `retriever_server.py` — The MCP server whose purpose is to wraps retriever as a tool.
@@ -27,7 +28,8 @@ Used my own semester's notes so I know that weather retrieval and generation act
 * langchain-google-genai (gemini-embedding-001 for embeddings, gemini-3.1-flash-lite-preview for generation)
 * ChromaDB (local, persisted)
 * crewai, crewai-tools (agent orchestration)
-* Mistral API (mistral-small-latest) — used for the agent layer; Groq's free tier couldn't sustain more than 1-2 questions per session, Gemini chat had a separate quota issue
+* Groq API (openai/gpt-oss-120b) — used for the agent layer; landed here after testing Gemini (chat completions hit a free-tier quota wall) and Mistral (free tier proved too unreliable for consistent testing)
+* LangSmith + OpenTelemetry (opentelemetry-instrumentation-crewai, openinference-instrumentation-litellm) — distributed tracing for both main.py and agent.py
 
 ## Pipeline
 * Documents (.docx, .pptx)
@@ -41,10 +43,13 @@ Used my own semester's notes so I know that weather retrieval and generation act
 * Gemini (gemini-3.1-flash-lite-preview) → Answer + Sources
 
 ## Running it
-1. Set a Gemini API key in a `.env` file `GOOGLE_API_KEY=...`, `MISTRAL_API_KEY=...` (only needed for `agent.py`)
+1. Set the required API keys in a `.env` file:
+   - `GOOGLE_API_KEY=...` (embeddings, used by `main.py` and `helpers.py`)
+   - `GROQ_API_KEY=...` (LLM provider for `agent.py`)
+   - For tracing (`agent.py` only): `LANGSMITH_API_KEY=...`, `LANGSMITH_TRACING=true`, `OTEL_EXPORTER=otlp_http`, `OTEL_ENDPOINT=https://api.smith.langchain.com/otel`, `OTEL_HEADERS=x-api-key=<your LangSmith API key>`
 2. pip install -r requirements.txt
 3. Place source documents in the project directory. Add your own source documents this repo doesn't include the original files (lecture slides are the instructor's material, not mine to redistribute). Place a `.docx` and a `.pptx` of your own in the project directory and update the filenames in the script to match.
-4. Run `main.py` for the core RAG assistant, or `agent.py` for the agent layer with tool-use judgment and conversational memory — first run builds and persists the vector store, subsequent runs load the existing one
+4. Run `main.py` for the core RAG assistant, or `agent.py` for the agent layer with tool-use judgment, conversational memory, and LangSmith tracing — first run builds and persists the vector store, subsequent runs load the existing one.
 
 ## Design decisions & Source material
 * **Source material:** `CN_Logical_IPv4_IPv6_Notes.docx` (logical addressing, IPv4/IPv6 addressing and packet structure, transition mechanisms) and `Hub, Switch and Router.pptx` (device comparison across OSI layers, functionality, advantages/disadvantages). Two different formats deliberately, to force the loader and chunking logic to handle more than one document type.
@@ -55,15 +60,37 @@ Used my own semester's notes so I know that weather retrieval and generation act
 * One agent, one tool (the retriever from `helpers.py`, wrapped)
 * Task forces three labeled answers, one answer from course material, second from llm's own knowledge and third is source citation.
 * Conversational memory is hand built not CrewAI's built-in `memory=True` a simple side-step.
-* **Provider notes:** Went through three LLM providers before landing on one that actually held up: Gemini (chat completions hit a free-tier quota wall — separate from the embeddings API, which worked fine), Groq (fast, but its free tier couldn't sustain more than 1-2 questions before rate-limiting), and finally Mistral, which has been stable for actual multi-turn testing.
+* **Provider notes:** Went through three LLM providers over the course of this project.
+  - **Gemini** was tried first for the agent layer. Chat completions hit a free-tier quota wall almost immediately — separate from the embeddings API, which worked fine and is still used for that.
+  - **Mistral** replaced Gemini and held up well for early multi-turn testing and evaluation (see the Mistral-era rate-limit note in the Developer Log below for the tool-call-related limits hit at that stage). It stayed the default provider through Phase 3.
+  - During **Phase 4** observability work, Mistral's free tier started returning frequent, unexplained `429 Rate limit exceeded` errors — even after long idle periods with zero other traffic. Mistral's own support confirmed this is expected: free-tier access is best-effort with no reserved capacity, so requests can be rejected regardless of actual usage or timing.
+  - Given that unpredictability made consistent testing impossible, the agent was switched to **Groq** (`openai/gpt-oss-120b`), which has been stable since.
 
 ## MCP Server (Phase-3)
 `retriever_server.py` adds an MCP server. The server consists of a tool (`notes_retriever`) that retrieves chunks on the basis of similarity. This tool only covers retrieval, not the whole agent. The purpose isn't to give LLM-generated output — the client already has its own model for that — so the retrieved chunks themselves carry more value than a synthesized answer would. That's why only retrieval was wrapped as a tool, not the full agent.
-
+ 
 Since the client can ask for any number of chunks, I updated the retrieval logic from Phase 1 to build just the vector store instead of a pre-configured retriever. This removes the baked-in `k` value, so `k` is now passed per request and the client controls how many chunks it gets back. Conversation output is formatted by reusing `format_docs` from `helpers.py`.
-
+ 
 **Relevance threshold (Content Gap detection for MCP tool):** `similarity_search` alone always returns the top-k closest matches regardless of whether they're actually relevant — an off-topic query (e.g. "cooking recipe of burger") still gets *something* back, since vector similarity search doesn't have a built-in "nothing matches" case. To catch this, `notes_retriever` uses `similarity_search_with_relevance_scores` and checks the top result's score against a 0.5 threshold before returning chunks. Below 0.5, the tool returns a scope-aware message ("This knowledge base only covers CN121 course material") instead of irrelevant chunks. The 0.5 cutoff was derived empirically, not guessed — tested against known in-scope queries across both indexed docs (IPv4/IPv6 doc: ~0.56–0.61, router/switch/hub doc: ~0.56+, a cross-document query touching both: ~0.58+) versus known out-of-scope queries (Border Gateway Protocol, a networking-adjacent topic *not* covered in these notes: ~0.44; an unrelated "burger recipe" query: ~0.32). The gap between relevant (~0.56+) and irrelevant (~0.44 and below) held consistently across documents, which is why 0.5 was chosen as the cutoff.
-
+ 
+## Observability (Phase-4)
+ 
+Added distributed tracing across the project, replacing manual print-statement debugging with real, inspectable traces on LangSmith.
+ 
+### Phase 4a — `main.py` (LangChain LCEL chain)
+ 
+Traced natively via LangSmith's standard `LANGSMITH_TRACING`/`LANGSMITH_API_KEY` environment variables — no code changes needed. Each step of the chain (retriever, prompt formatting, LLM call) appears as a separate span with real inputs, outputs, and token counts.
+ 
+### Phase 4b — `agent.py` (CrewAI agent)
+ 
+Required a different approach, since CrewAI isn't LangSmith-native and doesn't always route through LiteLLM the way it might appear to.
+ 
+- **Gemini models bypass LiteLLM entirely.** CrewAI doesn't talk to Gemini through LiteLLM — it uses Google's own SDK directly for Gemini calls, so no LiteLLM-based tracing can see them.
+- **Mistral and Groq models route through LiteLLM**, so they can be traced — but LiteLLM's own native tracing option (`litellm.callbacks = ['otel']`) doesn't produce a trace when the call happens inside CrewAI's execution, even for a provider that does use LiteLLM.
+- **Working setup:** two separate instrumentors, since CrewAI's own execution (agents, tasks) and the underlying LiteLLM completion call are two different things to trace — `CrewAIInstrumentor` (from `opentelemetry-instrumentation-crewai`) watches agent/task-level execution, and `LiteLLMInstrumentor` (from `openinference-instrumentation-litellm`) watches the actual LLM calls (model, tokens, cost). Both are wired to a shared `TracerProvider` pointed at LangSmith.
+- Tracing setup lives in a standalone `observability.py` (a single `setup_tracing()` function), kept separate from `agent.py`'s actual business logic.
+Currently using Groq as the traced provider.
+ 
 ## Testing & Evaluation
 ### Base Retrieval (`evaluate.py`)
 * To check the retrievals correctness `evaluate.py` is used. It checks that the retrieved sources and expected sources matches each other, so the retrieved information is from the correct source. 
@@ -83,7 +110,7 @@ Since the client can ask for any number of chunks, I updated the retrieval logic
 ## Developer Log: Limitations & Bugs
 * **A real limitation I found (Content Gap vs Bug):** While testing retrieval quality for the question "What is a MAC address?" I only found one result that was actually relevant the rest were not. The reason was not the "search_type" or retrieval bug, but it was because the documents itself did not contain enough of the information about MAC addressing. This was the reason why I used files of my own and that is the why of the project. Changing the "search_type" would not fix anything if the material itself was not enough. This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually helps me understand the difference between pipeline bug and content gap.
   
-* **Agent Limitation (Rate Limits):** The limitation I faced is that on running test cases (or `agent.py` and asking one question) the evaluation worked fine. But on running multiple cases together it showed rate limit error. The first thing i observed is that question that are answered from the notes contains one tool call while general knowledge answered questions contain 4 tool calls (BGP = 4 tool calls, IPv4 = 1 tool call). The actual limit of the model from dashboard was: 0.17 RPS, 20,000 tokens/minute. So, I added retry only once after which questions that are not from notes or require multiple sources when evaluated resulted in passed cases. This is because of relevance so for a topic outside the notes the llm calls the tool 4 times since retrieved result was not relevant to the asked question. However, on running all the cases together it still showed the same error. So, I reduced the retrying to 0 after first attempt and added a time gap of 20 seconds between each iteration and it still showed rate limit error. So finally, I ran all the test cases one by one (multiple times) due to this limitation and all of them passed (Free tier limit not a code bug).
+* **Agent Limitation (Rate Limits, Mistral-era):** Hit while the agent was still on Mistral, before the Phase 4 switch to Groq described above. On running test cases (or `agent.py` and asking one question) the evaluation worked fine. But on running multiple cases together it showed rate limit error. The first thing i observed is that question that are answered from the notes contains one tool call while general knowledge answered questions contain 4 tool calls (BGP = 4 tool calls, IPv4 = 1 tool call). The actual limit of the model from dashboard was: 0.17 RPS, 20,000 tokens/minute. So, I added retry only once after which questions that are not from notes or require multiple sources when evaluated resulted in passed cases. This is because of relevance so for a topic outside the notes the llm calls the tool 4 times since retrieved result was not relevant to the asked question. However, on running all the cases together it still showed the same error. So, I reduced the retrying to 0 after first attempt and added a time gap of 20 seconds between each iteration and it still showed rate limit error. So finally, I ran all the test cases one by one (multiple times) due to this limitation and all of them passed (Free tier limit not a code bug).
   
 * **Agent Memory Limitation:** CrewAI's built in memory system's default is OpenAI embedder, and its Google embedder option depends on the `google-generativeai` package which Google has fully deprecated. Current short-term memory is a running list of prior Q&A pairs get joined into a string and passed into the `{history}` placeholder on every call.
   

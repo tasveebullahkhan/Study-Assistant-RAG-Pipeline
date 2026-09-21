@@ -3,7 +3,10 @@ from agent import ask, course_agent
 
 # List of expected outcomes
 expected_outcomes = [
-    
+    {"question":"What is BGP?", "Source Citation":["General Knowledge (External)"], "in_notes":False},
+    {"question":"What is ipv4?", "Source Citation":["CN_Logical_IPv4_IPv6_Notes.docx"], "in_notes":True},
+    {"question":"What is a switch?", "Source Citation":["Hub, Switch and Router.pptx"], "in_notes":True},
+    {"question":"What is a Https?", "Source Citation":["General Knowledge (External)"], "in_notes":False},
     {"question":"How does a router's use of IP addresses relate to logical addressing, and how is that different from how a switch uses MAC addresses?", "Source Citation":["CN_Logical_IPv4_IPv6_Notes.docx", "Hub, Switch and Router.pptx"], "in_notes":True},
 ]
 

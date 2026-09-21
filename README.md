@@ -89,7 +89,6 @@ Required a different approach, since CrewAI isn't LangSmith-native and doesn't a
 - **Mistral and Groq models route through LiteLLM**, so they can be traced — but LiteLLM's own native tracing option (`litellm.callbacks = ['otel']`) doesn't produce a trace when the call happens inside CrewAI's execution, even for a provider that does use LiteLLM.
 - **Working setup:** two separate instrumentors, since CrewAI's own execution (agents, tasks) and the underlying LiteLLM completion call are two different things to trace — `CrewAIInstrumentor` (from `opentelemetry-instrumentation-crewai`) watches agent/task-level execution, and `LiteLLMInstrumentor` (from `openinference-instrumentation-litellm`) watches the actual LLM calls (model, tokens, cost). Both are wired to a shared `TracerProvider` pointed at LangSmith.
 - Tracing setup lives in a standalone `observability.py` (a single `setup_tracing()` function), kept separate from `agent.py`'s actual business logic.
-- **Known gap:** retrieval is not its own span in the agent trace (no LangChain instrumentor was added). It is visible only as text inside the agent's Observation output.
 
 Currently using Groq as the traced provider.
  

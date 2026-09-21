@@ -11,16 +11,16 @@ A retrieval-augmented generation (RAG) system that answers questions about my Co
 * ⏳ Phase 7 — Fine-tuning (Phi-3 mini)
 
 ## Why this project
-Used my own semester's notes so I know that whether retrieval and generation actually work or just look like it works. 
+Used my own semester's notes so I know whether retrieval and generation actually work or just look like it works. 
  
 ## Project structure
 * `helpers.py` — reusable logic: document loaders, chunking, retriever setup, context formatting, shared constants
 * `main.py` — the interactive study assistant (ask a question, get a cited answer)
-* `agent.py` — CrewAI agent layer wraps the retriever as a tool and conversational memory is added.
+* `agent.py` — CrewAI agent layer that wraps the retriever as a tool and adds conversational memory.
 * `observability.py` — LangSmith/OpenTelemetry tracing setup (`setup_tracing()`), kept separate from agent logic
 * `evaluate.py` — retrieval evaluation script, run independently to check retrieval quality against a known test set
 * `evaluate_agent.py` — Agent evaluation script, to check agents output quality against a known test.
-* `retriever_server.py` — The MCP server whose purpose is to wraps retriever as a tool.
+* `retriever_server.py` — The MCP server whose purpose is to wrap the retriever as a tool.
 * `retriever_client.py` — Client that is used to validate the working of the MCP server.
 
 ## Tech Stack
@@ -28,7 +28,7 @@ Used my own semester's notes so I know that whether retrieval and generation act
 * langchain-google-genai (gemini-embedding-001 for embeddings, gemini-3.1-flash-lite-preview for generation)
 * ChromaDB (local, persisted)
 * crewai (agent orchestration)
-* Groq API (openai/gpt-oss-120b) — used for the agent layer; landed here after testing Gemini (chat completions hit a free-tier quota wall) and Mistral (free tier proved too unreliable for consistent testing)
+* Groq API (`qwen/qwen3.8-27b`) — used for the agent layer; landed here after testing Gemini (chat completions hit a free-tier quota wall), Mistral (free tier proved too unreliable for consistent testing) and Groq's `openai/gpt-oss-120b` (failed the agent evaluation, see Developer Log)
 * LangSmith + OpenTelemetry (opentelemetry-instrumentation-crewai, openinference-instrumentation-litellm) — distributed tracing for both main.py and agent.py
 
 ## Pipeline
@@ -56,15 +56,15 @@ Used my own semester's notes so I know that whether retrieval and generation act
 * **Chunking:** Different chunk settings per format. The docx are chunked at 2000 chars with 200 overlap so multi-part explanations don't get cut off mid-concept. The pptx is one distinct topic per slide, so it's chunked smaller 1000 chars with no overlap. 20% rule of the chunk_size is applied for chunk overlap.
 
 ## Agent Layer
-`agent.py` adds a CrewAI agent that decide for itself whether a question needs course notes to answer or can be answered from general knowledge and state whether the answer was from course notes or general knowledge to avoid blending as if it were grounded.
+`agent.py` adds a CrewAI agent that decides for itself whether a question needs course notes to answer or can be answered from general knowledge, and states whether the answer was from course notes or general knowledge to avoid blending as if it were grounded.
 * One agent, one tool (the retriever from `helpers.py`, wrapped)
 * Task forces three labeled answers, one answer from course material, second from llm's own knowledge and third is source citation.
 * Conversational memory is hand built not CrewAI's built-in `memory=True` a simple side-step.
-* **Provider notes:** Went through three LLM providers over the course of this project.
+* **Provider notes:** Went through three LLM providers, and two Groq models, over the course of this project.
   - **Gemini** was tried first for the agent layer. Chat completions hit a free-tier quota wall almost immediately — separate from the embeddings API, which worked fine and is still used for that.
-  - **Mistral** replaced Gemini and held up well for early multi-turn testing and evaluation (see the Mistral-era rate-limit note in the Developer Log below for the tool-call-related limits hit at that stage). It stayed the default provider through Phase 3.
+  - **Mistral** replaced Gemini and held up well for early multi-turn testing and evaluation (see the rate-limit note in the Developer Log below for the tool-call-related limits hit at that stage). It stayed the default provider through Phase 3.
   - During **Phase 4** observability work, Mistral's free tier started returning frequent, unexplained `429 Rate limit exceeded` errors — even after long idle periods with zero other traffic. Mistral's own support confirmed this is expected: free-tier access is best-effort with no reserved capacity, so requests can be rejected regardless of actual usage or timing.
-  - Given that unpredictability made consistent testing impossible, the agent was switched to **Groq** (`openai/gpt-oss-120b`), which has been stable since.
+  - Given that unpredictability made consistent testing impossible, the agent was switched to **Groq**, first with `openai/gpt-oss-120b`. That model failed the agent evaluation that Mistral had passed (see Testing & Evaluation and the Developer Log), so the agent now runs on `qwen/qwen3.8-27b`, also on Groq, where the evaluation passes again.
 
 ## MCP Server (Phase-3)
 `retriever_server.py` adds an MCP server. The server consists of a tool (`notes_retriever`) that retrieves chunks on the basis of similarity. This tool only covers retrieval, not the whole agent. The purpose isn't to give LLM-generated output — the client already has its own model for that — so the retrieved chunks themselves carry more value than a synthesized answer would. That's why only retrieval was wrapped as a tool, not the full agent.
@@ -89,6 +89,8 @@ Required a different approach, since CrewAI isn't LangSmith-native and doesn't a
 - **Mistral and Groq models route through LiteLLM**, so they can be traced — but LiteLLM's own native tracing option (`litellm.callbacks = ['otel']`) doesn't produce a trace when the call happens inside CrewAI's execution, even for a provider that does use LiteLLM.
 - **Working setup:** two separate instrumentors, since CrewAI's own execution (agents, tasks) and the underlying LiteLLM completion call are two different things to trace — `CrewAIInstrumentor` (from `opentelemetry-instrumentation-crewai`) watches agent/task-level execution, and `LiteLLMInstrumentor` (from `openinference-instrumentation-litellm`) watches the actual LLM calls (model, tokens, cost). Both are wired to a shared `TracerProvider` pointed at LangSmith.
 - Tracing setup lives in a standalone `observability.py` (a single `setup_tracing()` function), kept separate from `agent.py`'s actual business logic.
+- **Known gap:** retrieval is not its own span in the agent trace (no LangChain instrumentor was added). It is visible only as text inside the agent's Observation output.
+
 Currently using Groq as the traced provider.
  
 ## Testing & Evaluation
@@ -101,7 +103,10 @@ Currently using Groq as the traced provider.
 ### Agent Evaluation (`evaluate_agent.py`)
 * To check the agents' correctness `evaluate_agent.py` is used. It first checks whether answer is found in our course notes or not on the basis of which it tells us if answer is from course notes or general knowledge. It then checks if the source cited is "General Knowledge (External)" for an outcome on the basis of that tell us whether answer is from general knowledge or not. Finally, if both cases are true test is passed otherwise failed.
 * There are total 5 cases 4 single source cases and one multiple source case (Among 4 single source cases 2 are "in_notes" cases and two are "not-in-notes" cases. The multiple source case contains both notes files).
-* Current result is "5/5 Passed" (Provided that each of them is run separately due to some limitations discussed below).
+* Results by provider/model:
+  - **Mistral** (through Phase 3): "5/5 Passed" (each case run separately, due to the rate limits discussed below).
+  - **Groq `openai/gpt-oss-120b`** (early Phase 4): regressed. Almost all cases failed and only the IPv4 case passed. Failure types: empty LLM responses, source filenames not matching exactly, and output not following the expected format.
+  - **Groq `qwen/qwen3.8-27b`** (current): passes again, matching the Mistral-era result. Each case is still run separately because of the rate limits discussed below.
 * To execute the test run `python evaluate_agent.py`.
 
 ### MCP Tool Testing (`retriever_client.py`)
@@ -110,7 +115,9 @@ Currently using Groq as the traced provider.
 ## Developer Log: Limitations & Bugs
 * **A real limitation I found (Content Gap vs Bug):** While testing retrieval quality for the question "What is a MAC address?" I only found one result that was actually relevant the rest were not. The reason was not the "search_type" or retrieval bug, but it was because the documents itself did not contain enough of the information about MAC addressing. This was the reason why I used files of my own and that is the why of the project. Changing the "search_type" would not fix anything if the material itself was not enough. This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually helps me understand the difference between pipeline bug and content gap.
   
-* **Agent Limitation (Rate Limits, Mistral-era):** First hit on Mistral, and still present after the Phase 4 switch to Groq (see the end of this entry). On running test cases (or `agent.py` and asking one question) the evaluation worked fine. But on running multiple cases together it showed rate limit error. The first thing i observed is that question that are answered from the notes contains one tool call while general knowledge answered questions contain 4 tool calls (BGP = 4 tool calls, IPv4 = 1 tool call). The actual limit of the model from mistral dashboard was: 0.17 RPS, 20,000 tokens/minute. So, I added retry only once after which questions that are not from notes or require multiple sources when evaluated resulted in passed cases. This is because of relevance so for a topic outside the notes the llm calls the tool 4 times since retrieved result was not relevant to the asked question. However, on running all the cases together it still showed the same error. So, I reduced the retrying to 0 after first attempt and added a time gap of 20 seconds between each iteration and it still showed rate limit error. So finally, I ran all the test cases one by one (multiple times) due to this limitation and all of them passed (Free tier limit not a code bug). The switch to Groq (`groq/openai/gpt-oss-120b`) did not remove the problem: its free tier allows 30 requests/min, 1,000 requests/day, 8,000 tokens/min and 200,000 tokens/day, enforced per organization. A single agent question can trigger several tool calls, each resending the prompt, history and retrieved chunks, so the tokens-per-minute cap is hit well before the requests-per-minute cap. The evaluation is therefore still run one case at a time.
+* **Model change broke the prompt guardrails (gpt-oss-120b → Qwen):** After moving the agent to Groq's `openai/gpt-oss-120b`, the agent evaluation that passed on Mistral mostly failed: empty LLM responses, mismatched source filenames, and output that ignored the expected three-part format. In manual testing it answered "What is BGP?" (which is not in the notes) as "from your course notes", and when asked where in the notes that came from, it invented a section, a slide number and a filename that do not exist. This is exactly the false grounding the three-part output was designed to prevent. Switching to `qwen/qwen3.8-27b` restored the passing evaluation, which points to model behavior rather than retrieval or the pipeline. The lesson: instruction-following guardrails written and validated against one model did not carry over to another, and the evaluation is what caught the regression. On Qwen, the same "What is BGP?" question followed by "where in the notes is that?" no longer produces a fabricated citation.
+
+* **Agent Limitation (Free-Tier Rate Limits):** First hit on Mistral, and still present after the Phase 4 switch to Groq (see the end of this entry). On running test cases (or `agent.py` and asking one question) the evaluation worked fine. But on running multiple cases together it showed rate limit error. The first thing i observed is that question that are answered from the notes contains one tool call while general knowledge answered questions contain 4 tool calls (BGP = 4 tool calls, IPv4 = 1 tool call). The actual limit of the model from mistral dashboard was: 0.17 RPS, 20,000 tokens/minute. So, I added retry only once after which questions that are not from notes or require multiple sources when evaluated resulted in passed cases. This is because of relevance so for a topic outside the notes the llm calls the tool 4 times since retrieved result was not relevant to the asked question. However, on running all the cases together it still showed the same error. So, I reduced the retrying to 0 after first attempt and added a time gap of 20 seconds between each iteration and it still showed rate limit error. So finally, I ran all the test cases one by one (multiple times) due to this limitation and all of them passed (Free tier limit not a code bug). Groq's free tier has similar constraints: `openai/gpt-oss-120b` and `qwen/qwen3.8-27b` each allow 30 requests/min, 1,000 requests/day, 8,000 tokens/min and 200,000 tokens/day, enforced per organization. A single agent question can trigger several tool calls, each resending the prompt, history and retrieved chunks, so the tokens-per-minute cap is the limit most likely to bind. The evaluation is therefore still run one case at a time.
   
 * **Agent Memory Limitation:** CrewAI's built in memory system's default is OpenAI embedder, and its Google embedder option depends on the `google-generativeai` package which Google has fully deprecated. Current short-term memory is a running list of prior Q&A pairs get joined into a string and passed into the `{history}` placeholder on every call.
   

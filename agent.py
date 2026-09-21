@@ -67,7 +67,7 @@ def ask(question: str) -> str:
 
 # An llm that will generate responses 
 llm = LLM(
-    model="groq/openai/gpt-oss-120b",
+    model="groq/qwen/qwen3.8-27b",
     temperature=0.0,
     api_key=os.environ["GROQ_API_KEY"],
     max_tokens=800
@@ -103,7 +103,7 @@ course_task = Task(
     - If the question's answer is enough that it covers the context of the question than say: "No additional information beyond your course notes".
 
     3. 'Source Citation:'
-    - Cite ONLY documents returned by the search tool.
+    - Cite ONLY documents returned by the search tool. The name of document should be exactly the same as the file from which it is retrieved. Don't add anything from your side just the filename nothing else.
     - If no course notes were used, write: "General Knowledge (External)" or list relevant standard documentation.""",
     agent=course_agent
 )

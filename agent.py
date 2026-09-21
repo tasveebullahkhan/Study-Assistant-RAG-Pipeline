@@ -70,7 +70,7 @@ llm = LLM(
     model="groq/qwen/qwen3.8-27b",
     temperature=0.0,
     api_key=os.environ["GROQ_API_KEY"],
-    max_tokens=800
+    max_tokens=10j00
 )
 
 # Agent that will answer our queries

@@ -1,3 +1,4 @@
+import litellm
 import time
 from agent import ask, course_agent
 
@@ -13,39 +14,53 @@ expected_outcomes = [
 # Loop each outcome in expected_outcomes
 passed_cases = 0
 tested_cases = 0
-for outcome in expected_outcomes:
 
-    # Ask the question
-    user_question = outcome["question"]
+retries = 0
+max_tries = 1
 
-    # Generating answer for the question
-    answer = ask(user_question)
+while retries < max_tries:
+    try:
+        for outcome in expected_outcomes:
 
-    # Not running the test case on finding errors
-    if "Error couldn't get a response for" in answer:
-        break
-    tested_cases += 1
+            # Ask the question
+            user_question = outcome["question"]
 
-    # Checking if answer is found in our course notes
-    not_mentioned = "Not mentioned in your course notes" in answer
-    if outcome["in_notes"]:
-        notes_ok = not not_mentioned
-    else:
-        notes_ok = not_mentioned
+            # Generating answer for the question
+            answer = ask(user_question)
 
-    # Checking if source cited are from course notes
-    source_general = "General Knowledge (External)" in answer
-    if outcome["in_notes"]:
-        source_ok = all(source in answer for source in outcome["Source Citation"])
-    else:
-        source_ok = source_general
+            # Not running the test case on finding errors
+            if "Error couldn't get a response for" in answer:
+                break
+            tested_cases += 1
 
-    # Deciding the pass/fail of the test case
-    if notes_ok and source_ok:
-        passed_cases += 1
-    else:
-        print(f"Failed case question is: {outcome['question']}")
+            # Checking if answer is found in our course notes
+            not_mentioned = "Not mentioned in your course notes" in answer
+            if outcome["in_notes"]:
+                notes_ok = not not_mentioned
+            else:
+                notes_ok = not_mentioned
 
-    # Gap of 10 seconds between each iteration
-    time.sleep(20)
-print(f"Passed {passed_cases}/{tested_cases}")
+            # Checking if source cited are from course notes
+            source_general = "General Knowledge (External)" in answer
+            if outcome["in_notes"]:
+                source_ok = all(source in answer for source in outcome["Source Citation"])
+            else:
+                source_ok = source_general
+
+            # Deciding the pass/fail of the test case
+            if notes_ok and source_ok:
+                passed_cases += 1
+            else:
+                print(f"Failed case question is: {outcome['question']}")
+
+            # Gap of 10 seconds between each iteration
+            time.sleep(20)
+        print(f"Passed {passed_cases}/{tested_cases}")
+
+    except litellm.exceptions.RateLimitError as e:
+        retries += 1 
+        # retrying once and waiting for a minute
+        if retries >= max_tries:
+            print("Maximum tries reached.")
+            raise e
+        time.sleep(60)

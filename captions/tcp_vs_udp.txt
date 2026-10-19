@@ -1,0 +1,15 @@
+RESPONSE: This diagram compares two core internet protocols, Transmission Control Protocol (TCP) and User Datagram Protocol (UDP), across three main characteristics. The table is structured with TCP in the left column and UDP in the right column, contrasting their behaviors row by row. The first row contrasts connection management, showing that TCP establishes a dedicated connection before sending data, whereas UDP operates without establishing a connection. The second row contrasts delivery guarantees, showing that TCP ensures reliable and correctly ordered delivery of data packets, whereas UDP provides no such guarantee for delivery or order. The third row contrasts mechanism complexity, showing that TCP includes features for retransmitting lost packets and controlling data flow, whereas UDP maintains low overhead for faster, simpler transmissions.
+
+List of text labels appearing in the diagram:
+D05
+TCP vs UDP
+TCP
+UDP
+Connection-oriented
+Connectionless
+Reliable, ordered delivery
+No delivery / order guarantee
+Retransnission, flow control (Note: labeled with a typo as Retransnission, referring to Retransmission)
+Low overhead 
+
+ SOURCE_TEXT_FILE: /workspaces/Study-Assistant-RAG-Pipeline/images/tcp_vs_udp.png

@@ -1,0 +1,18 @@
+RESPONSE: This diagram illustrates the path of an Ethernet frame from a source computer to a destination computer through a network switch, accompanied by a breakdown of the standard Ethernet frame fields and their sizes. The top portion of the diagram shows a sequential flow from left to right: PC A acting as the source creates and sends an Ethernet frame, which then passes through a network switch connected at port 3, and finally arrives at PC B acting as the destination. The bottom portion of the diagram details the internal structure and field sizes of an Ethernet frame, listed from top to bottom in the order they appear in the frame header and trailer.
+
+The labels, field names, numbers, sizes, and values appearing in the image are as follows:
+
+D01
+Ethernet Frame Path
+PC A (Source)
+Ethernet Frame
+Switch (port 3)
+PC B (Destination)
+Frame fields (Ethernet)
+Dsstination MAC (6 bytes), with the label Dsstination MAC containing a typo and referring to Destination MAC
+Source MAC (6 bytes)
+EtherType (2 bytes)
+Payload (46 - 1500 bytes)
+FCS (4 bytes) 
+
+ SOURCE_TEXT_FILE: /workspaces/Study-Assistant-RAG-Pipeline/images/ethernet_frame_path.png

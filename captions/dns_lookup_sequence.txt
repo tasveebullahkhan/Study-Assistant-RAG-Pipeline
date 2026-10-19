@@ -1,0 +1,22 @@
+RESPONSE: This diagram teaches the step-by-step sequence of a DNS lookup process. It shows the interaction between five main entities involved in resolving a domain name into an IP address: a client, a recursive resolver, a root DNS server, a TLD DNS server, and an authoritative DNS server. The diagram illustrates a recursive resolution model where the client initiates a request to the recursive resolver, and the resolver then queries the root, TLD, and authoritative servers in a sequential chain to obtain the final IP address, which is then returned to the client.
+
+The following text lists every label, field name, number, size, and value that appears in the image, noting any misspellings and their intended meanings.
+
+Top left: DO2
+Main title: DNS Lookup Sequence (e.g. www.example.com)
+Under the title, the four server types are labeled as follows:
+First server label: Recursive Rogoltor (labeled with a typo, referring to Recursive Resolver)
+Second server label: Root DNS
+Third server label: TLD DNS
+Fourth server label: Authoritative DNS
+Next to the computer icon on the left: Client
+
+Numbered steps and associated text:
+Number 1 inside a blue circle: Query: (www.ceample.com) (note: example is misspelled as ceample)
+Text below step 1 arrow: unreadable text
+Number 2 inside a green circle: Query (to reet) (note: root is misspelled as reet)
+Number 3 inside an orange circle: Query (.com)
+Number 4 inside a yellow circle: Query (www.seample.com) (note: example is misspelled as seample)
+Number 5 inside a pink circle: Answer: IP address (e.g. 93.184.216.34) 
+
+ SOURCE_TEXT_FILE: /workspaces/Study-Assistant-RAG-Pipeline/images/dns_lookup_sequence.png

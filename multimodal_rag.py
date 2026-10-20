@@ -2,6 +2,7 @@ from pathlib import Path
 from google.genai import types
 from google import genai
 from dotenv import load_dotenv
+from langchain_core.documents import Document
 
 #loading api keys in environment
 load_dotenv()
@@ -33,26 +34,56 @@ IMAGE_DIR = Path(__file__).parent / "images"
 CAPTION_DIR = Path(__file__).parent / "captions" 
 
 # Convert image to raw bytes and give to gemini as parts object
-def caption_image(path:Path) -> str:
-    # Checking if the file already exists
-    output_path = CAPTION_DIR / f"{path.stem}.txt"
-    # Skip the writing if file exists on disk
-    if output_path.exists():
-        print(f"File already exists on the disk.\n\nFILE_PATH:{path}")
-        return
+def caption_image(image_dir:Path) -> None: # Writes file as output
+    image_paths = sorted(image_dir.glob("*.png"))
     
-    # Writing the file on the disk if doesn't exists on disk
-    print(f"Saving caption file on the disk.")
-    image_bytes = path.read_bytes()
-    image_parts = types.Part.from_bytes(data = image_bytes, mime_type="image/png")
-    response = client.models.generate_content(
-        model = CHAT_MODEL,
-        contents = [image_parts, CAPTION_PROMPT]
-    )
-    caption_output = f"RESPONSE: {response.text} \n\n SOURCE_TEXT_FILE: {path}"
+    for image_path in image_paths:
+        # Checking if the file already exists
+        output_path = CAPTION_DIR / f"{image_path.stem}.txt"
 
-    # Write the file
-    output_path.write_text(caption_output, encoding="utf-8")
-    print(f"File saved on disk.\n\nFILE_NAME: {output_path.name}")
+        # Skip the writing if file exists on disk
+        if output_path.exists():
+            print(f"File already exists on the disk.\nEXSISTING_FILE_PATH:{image_path}\n\n")
+        
+        # Writing the file on the disk if doesn't exists on disk
+        else:
+            print(f"Saving caption file on the disk.")
+            image_bytes = image_path.read_bytes()
+            image_parts = types.Part.from_bytes(data = image_bytes, mime_type="image/png")
+            response = client.models.generate_content(
+                model = CHAT_MODEL,
+                contents = [image_parts, CAPTION_PROMPT]
+            )
+            caption_output = f"RESPONSE: {response.text} \n\n SOURCE_IMAGE: {image_path.name}"
 
-result = caption_image(IMAGE_DIR / "tcp_vs_udp.png")
+            # Write the file
+            output_path.write_text(caption_output, encoding="utf-8")
+            print(f"File saved on disk.\n\nFILE_NAME: {output_path.name}")
+
+# Turning each caption into documents with metadata
+def generate_caption_documents() -> list[dict]:
+    # scanning all the .txt files dynamically
+    caption_paths = sorted(CAPTION_DIR.glob("*.txt"))
+
+    # Read texts and Build document objects
+    documents = []
+    for path in caption_paths:
+        caption_text = path.read_text(encoding="utf-8")
+
+        # Original file name from the text file path
+        original_file_name = f"{path.stem}.png"
+
+        doc = Document(
+            page_content = caption_text,
+            metadata = {
+                "source":original_file_name,
+                "media_type":"image" # Marker identifying an image
+            }
+        )
+        documents.append(doc)
+    print(f"GENERATING {len(documents)} DOCUMENTS")
+    return documents
+
+
+# Captioning all the images
+generate_caption_documents()

@@ -1,8 +1,12 @@
+import os
+import sys
 from pathlib import Path
 from google.genai import types
 from google import genai
 from dotenv import load_dotenv
 from langchain_core.documents import Document
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_chroma import Chroma
 
 #loading api keys in environment
 load_dotenv()
@@ -10,7 +14,7 @@ load_dotenv()
 # Used chat model
 CHAT_MODEL = "gemini-3.5-flash-lite"
 
-# Loading client
+# initializing google genai client
 client = genai.Client()
 
 # Captioning prompt
@@ -61,12 +65,13 @@ def caption_image(image_dir:Path) -> None: # Writes file as output
             print(f"File saved on disk.\n\nFILE_NAME: {output_path.name}")
 
 # Turning each caption into documents with metadata
-def generate_caption_documents() -> list[dict]:
+def Adding_documents_vector_store() -> list[dict]:
     # scanning all the .txt files dynamically
     caption_paths = sorted(CAPTION_DIR.glob("*.txt"))
 
-    # Read texts and Build document objects
+    # Read texts and Build document objects along with uniqure ids
     documents = []
+    ids = []
     for path in caption_paths:
         caption_text = path.read_text(encoding="utf-8")
 
@@ -81,9 +86,35 @@ def generate_caption_documents() -> list[dict]:
             }
         )
         documents.append(doc)
-    print(f"GENERATING {len(documents)} DOCUMENTS")
-    return documents
+        ids.append(original_file_name)
+
+    # Initializing embedding function and persist chroma directory
+    embedding_function = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+    persist_dir_path = os.path.join(os.getcwd(), "chromadb")
+
+    # Opening the existing vector store
+    vector_store = Chroma(
+            embedding_function= embedding_function,
+            persist_directory = persist_dir_path
+        )
+
+    # Adding documents to the store using ids
+    vector_store.add_documents(
+            documents = documents,
+            ids = ids
+        )
+    print(f"Successfully updated {len(documents)} image documents", file = sys.stderr)
+    return vector_store
 
 
-# Captioning all the images
-generate_caption_documents()
+vector_store = Adding_documents_vector_store()
+
+# Fetch record directly by its deterministic ID
+dns_id = "dns_lookup_sequence.png"
+record = vector_store.get(ids=[dns_id])
+
+# Print record details
+print("--- FETCHED CHROMA RECORD ---")
+print(f"ID: {record['ids'][0]}")
+print(f"Metadata: {record['metadatas'][0]}")
+print(f"Page Content Snippet:\n{record['documents'][0][:300]}...")

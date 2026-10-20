@@ -35,7 +35,7 @@ def split_docs(document, chunk_size, chunk_overlap, separators):
 # Building the retriever
 def build_retriever(docx_file, pptx_file, k):
 
-    # Loading the docx and pptx files
+    # Loading the docx files
     docx_loader = UnstructuredWordDocumentLoader(docx_file)
     docx_data = docx_loader.load()
 
@@ -84,7 +84,7 @@ def build_retriever(docx_file, pptx_file, k):
 # Building the vector store (removing the "k" for more control over client requests)
 def build_vector_store(docx_file, pptx_file):
 
-    # Loading the docx and pptx files
+    # Loading the docx files
     docx_loader = UnstructuredWordDocumentLoader(docx_file)
     docx_data = docx_loader.load()
 

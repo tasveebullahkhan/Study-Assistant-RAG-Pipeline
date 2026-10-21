@@ -25,7 +25,7 @@ for outcome in expected_outcomes:
         try:
             # Generating answer for the question
             answer = ask(user_question)
-            break # 🟩 Success! Break out of the while loop and process the answer below
+            break
             
         except litellm.exceptions.RateLimitError as e:
             retries += 1 

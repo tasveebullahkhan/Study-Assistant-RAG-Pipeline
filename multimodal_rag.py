@@ -58,14 +58,14 @@ def caption_image(image_dir:Path) -> None: # Writes file as output
                 model = CHAT_MODEL,
                 contents = [image_parts, CAPTION_PROMPT]
             )
-            caption_output = f"RESPONSE: {response.text} \n\n SOURCE_IMAGE: {image_path.name}"
+            caption_output = f"{response.text}"
 
             # Write the file
             output_path.write_text(caption_output, encoding="utf-8")
             print(f"File saved on disk.\n\nFILE_NAME: {output_path.name}")
 
 # Turning each caption into documents with metadata
-def Adding_documents_vector_store() -> list[dict]:
+def Adding_documents_vector_store():
     # scanning all the .txt files dynamically
     caption_paths = sorted(CAPTION_DIR.glob("*.txt"))
 
@@ -106,15 +106,16 @@ def Adding_documents_vector_store() -> list[dict]:
     print(f"Successfully updated {len(documents)} image documents", file = sys.stderr)
     return vector_store
 
-
+caption_image(IMAGE_DIR)
 vector_store = Adding_documents_vector_store()
 
 # Fetch record directly by its deterministic ID
-dns_id = "dns_lookup_sequence.png"
-record = vector_store.get(ids=[dns_id])
+dns_ids = ["dns_lookup_sequence.png", "ethernet_frame_path.png", "tcp_vs_udp.png"]
+record = vector_store.get()
+print(vector_store._collection.count())
 
 # Print record details
-print("--- FETCHED CHROMA RECORD ---")
-print(f"ID: {record['ids'][0]}")
-print(f"Metadata: {record['metadatas'][0]}")
-print(f"Page Content Snippet:\n{record['documents'][0][:300]}...")
+for doc_id, meta, text in zip(record['ids'], record['metadatas'], record['documents']):
+    print(f"ID: {doc_id}")
+    print(f"Metadata: {meta}")
+    print(f"Page Content Snippet:\n{text[:300]}...\n")

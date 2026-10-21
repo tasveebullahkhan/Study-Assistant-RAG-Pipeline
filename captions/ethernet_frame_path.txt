@@ -1,18 +1,23 @@
-RESPONSE: This diagram illustrates the path of an Ethernet frame from a source computer to a destination computer through a network switch, accompanied by a breakdown of the standard Ethernet frame fields and their sizes. The top portion of the diagram shows a sequential flow from left to right: PC A acting as the source creates and sends an Ethernet frame, which then passes through a network switch connected at port 3, and finally arrives at PC B acting as the destination. The bottom portion of the diagram details the internal structure and field sizes of an Ethernet frame, listed from top to bottom in the order they appear in the frame header and trailer.
+This diagram illustrates the path of an Ethernet frame as it travels from a source computer through a switch to a destination computer, alongside the structure and fields that make up an Ethernet frame. The flow starts at PC A, which acts as the source, sending data packaged into an Ethernet frame. The frame moves to a switch, specifically noted as connected to port 3, which forwards the frame onward to PC B, acting as the destination. Below this path, the diagram breaks down the internal components of an Ethernet frame into its specific sequential fields and their corresponding sizes.
 
-The labels, field names, numbers, sizes, and values appearing in the image are as follows:
+The complete list of labels, field names, numbers, sizes, and values appearing in the image is as follows:
 
-D01
+Text at the top:
+DO1
 Ethernet Frame Path
+
+Labels along the top flow:
 PC A (Source)
 Ethernet Frame
 Switch (port 3)
 PC B (Destination)
+
+Title of the lower section:
 Frame fields (Ethernet)
-Dsstination MAC (6 bytes), with the label Dsstination MAC containing a typo and referring to Destination MAC
+
+List of frame fields with sizes:
+Dsstination MAC (6 bytes), noting that Dsstination MAC is a misspelling of Destination MAC
 Source MAC (6 bytes)
 EtherType (2 bytes)
 Payload (46 - 1500 bytes)
-FCS (4 bytes) 
-
- SOURCE_TEXT_FILE: /workspaces/Study-Assistant-RAG-Pipeline/images/ethernet_frame_path.png
+FCS (4 bytes)

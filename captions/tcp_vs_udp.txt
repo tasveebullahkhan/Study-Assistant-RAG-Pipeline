@@ -1,15 +1,13 @@
-RESPONSE: This diagram compares two core internet protocols, Transmission Control Protocol (TCP) and User Datagram Protocol (UDP), across three main characteristics. The table is structured with TCP in the left column and UDP in the right column, contrasting their behaviors row by row. The first row contrasts connection management, showing that TCP establishes a dedicated connection before sending data, whereas UDP operates without establishing a connection. The second row contrasts delivery guarantees, showing that TCP ensures reliable and correctly ordered delivery of data packets, whereas UDP provides no such guarantee for delivery or order. The third row contrasts mechanism complexity, showing that TCP includes features for retransmitting lost packets and controlling data flow, whereas UDP maintains low overhead for faster, simpler transmissions.
+This diagram compares two core transport layer protocols in computer networking, Transmission Control Protocol (TCP) and User Datagram Protocol (UDP), by contrasting their characteristics across three different rows. The first row compares how connections are established, contrasting connection-oriented behavior with connectionless behavior. The second row compares delivery guarantees, contrasting reliable and ordered delivery with no delivery or order guarantee. The third row compares protocol mechanisms, contrasting retransmission and flow control with low overhead.
 
-List of text labels appearing in the diagram:
-D05
-TCP vs UDP
-TCP
-UDP
-Connection-oriented
-Connectionless
-Reliable, ordered delivery
-No delivery / order guarantee
-Retransnission, flow control (Note: labeled with a typo as Retransnission, referring to Retransmission)
-Low overhead 
-
- SOURCE_TEXT_FILE: /workspaces/Study-Assistant-RAG-Pipeline/images/tcp_vs_udp.png
+The labels and text fields appearing in the diagram are:
+Top heading text: D05
+Main title text: TCP vs UDP
+Left column header: TCP
+Right column header: UDP
+Row 1 left text: Connection-oriented
+Row 1 right text: Connectionless
+Row 2 left text: Reliable, ordered delivery
+Row 2 right text: No delivery / order guarantee
+Row 3 left text: Retransnission, flow control (Note: the word Retransnission contains a typo, spelled with an n instead of a t, referring to Retransmission)
+Row 3 right text: Low overhead

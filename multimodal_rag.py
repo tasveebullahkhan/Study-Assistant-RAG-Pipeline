@@ -111,10 +111,11 @@ vector_store = Adding_documents_vector_store()
 # Fetch record directly by its deterministic ID
 dns_ids = ["dns_lookup_sequence.png", "ethernet_frame_path.png", "tcp_vs_udp.png"]
 record = vector_store.get()
-print(vector_store._collection.count())
 
 # Print record details
 for doc_id, meta, text in zip(record['ids'], record['metadatas'], record['documents']):
     print(f"ID: {doc_id}")
     print(f"Metadata: {meta}")
     print(f"Page Content Snippet:\n{text[:300]}...\n")
+
+print(f"TOTAL-DOCS: {vector_store._collection.count()}")

@@ -6,6 +6,13 @@ expected_outcomes = [
     {"question":"In a DNS lookup, in what order are the servers queried, and which one finally supplies the answer?",
      "Source Citation":["dns_lookup_sequence.png"],
       "in_notes":True},
+    {"question":"What is the allowed size range for the payload of an Ethernet frame?",
+     "Source Citation":["ethernet_frame_path.png"],
+      "in_notes":True},
+    {"question":"Which transport protocol uses retransmission and flow control, and which one is described as low overhead?",
+     "Source Citation":["tcp_vs_udp.png"],
+      "in_notes":True},
+      
 ]
 
 # Loop each outcome in expected_outcomes

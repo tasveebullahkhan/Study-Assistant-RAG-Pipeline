@@ -1,10 +1,20 @@
 import asyncio
 import mcp
+import os
 from mcp.server.mcpserver import MCPServer
-from helpers import build_vector_store, format_docs, DOCX_FILE, PPTX_FILE
+from helpers import format_docs, PERSIST_DIR_PATH
+from langchain_chroma import Chroma
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-# Vector store of notes to avoid building it repeatedly
-vector_store = build_vector_store(DOCX_FILE, PPTX_FILE)
+# Initializing embedding function and persist chroma directory
+embedding_function = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+
+
+# Opening the existing vector store
+vector_store = Chroma(
+        embedding_function= embedding_function,
+        persist_directory = PERSIST_DIR_PATH
+    )
 
 # Instantiating mcp server
 mcp = MCPServer("Notes Retriever")

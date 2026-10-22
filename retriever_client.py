@@ -49,6 +49,6 @@ asyncio.run(
     call_tool_from_mcp(
         "notes_retriever",
         {"query": "What is BGP?",
-        "k": 3,}
+        "k": 1,}
     )
 )

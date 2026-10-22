@@ -1,6 +1,5 @@
-import litellm
 import time
-from agent import ask, course_agent
+from agent import ask
 
 # List of expected outcomes
 expected_outcomes = [
@@ -9,37 +8,20 @@ expected_outcomes = [
       "in_notes":True},
 ]
 
+# Loop each outcome in expected_outcomes
 passed_cases = 0
 tested_cases = 0
-
-# Loop through each individual question
 for outcome in expected_outcomes:
+
+    # Ask the question
     user_question = outcome["question"]
-    
-    # Retry logic handles JUST this specific question
-    retries = 0
-    max_tries = 2
-    answer = None
 
-    while retries < max_tries:
-        try:
-            # Generating answer for the question
-            answer = ask(user_question)
-            break
-            
-        except litellm.exceptions.RateLimitError as e:
-            retries += 1 
-            if retries >= max_tries:
-                print(f"Maximum tries reached for question: {user_question}")
-                raise e
-            print("Rate limit hit. Waiting 60 seconds to retry this question...")
-            time.sleep(60)
+    # Generating answer for the question
+    answer = ask(user_question)
 
-    # If ask(user_question) failed or returned an error phrase, skip evaluation for this question
-    if answer is None or "Error couldn't get a response for" in answer:
-        print(f"Skipping evaluation for: {user_question} due to agent error.")
-        continue # Skip to the next question in expected_outcomes
-        
+    # Not running the test case on finding errors
+    if "Error couldn't get a response for" in answer:
+        break
     tested_cases += 1
 
     # Checking if answer is found in our course notes
@@ -62,8 +44,6 @@ for outcome in expected_outcomes:
     else:
         print(f"Failed case question is: {outcome['question']}")
 
-    # Gap of 20 seconds between different questions
+    # Gap of 10 seconds between each iteration
     time.sleep(20)
-
-# Final summary printed once at the very end of all questions
-print(f"\nFinal Results: Passed {passed_cases}/{tested_cases}")
+print(f"Passed {passed_cases}/{tested_cases}")

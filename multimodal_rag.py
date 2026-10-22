@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 from google.genai import types
@@ -7,6 +6,7 @@ from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
+from helpers import PERSIST_DIR_PATH
 
 #loading api keys in environment
 load_dotenv()
@@ -88,14 +88,13 @@ def Adding_documents_vector_store():
         documents.append(doc)
         ids.append(original_file_name)
 
-    # Initializing embedding function and persist chroma directory
+    # Initializing embedding function
     embedding_function = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
-    persist_dir_path = os.path.join(os.getcwd(), "chromadb")
 
     # Opening the existing vector store
     vector_store = Chroma(
             embedding_function= embedding_function,
-            persist_directory = persist_dir_path
+            persist_directory = PERSIST_DIR_PATH
         )
 
     # Adding documents to the store using ids

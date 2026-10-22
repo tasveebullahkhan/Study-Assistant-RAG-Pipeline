@@ -14,6 +14,9 @@ dotenv.load_dotenv()
 DOCX_FILE = "CN_Logical_IPv4_IPv6_Notes.docx"
 PPTX_FILE = "Hub, Switch and Router.pptx"
 
+# Intitializing the path for chroma database
+PERSIST_DIR_PATH = os.path.join(os.getcwd(), "chromadb")
+
 # Function to format the retrieved data
 def format_docs(docs):
     source = ""
@@ -53,14 +56,11 @@ def build_retriever(docx_file, pptx_file, k):
     # Set up google gemini embedding model to embed the docs
     embedding_function = GoogleGenerativeAIEmbeddings(model = "gemini-embedding-001")
 
-    # Intitialize an chroma database
-    persist_dir_path = os.path.join(os.getcwd(), "chromadb")
-
     # Loading existing vectorstore
-    if os.path.exists(persist_dir_path) and os.listdir(persist_dir_path):
+    if os.path.exists(PERSIST_DIR_PATH) and os.listdir(PERSIST_DIR_PATH):
         vector_store = Chroma(
         embedding_function= embedding_function,
-        persist_directory= persist_dir_path
+        persist_directory= PERSIST_DIR_PATH
     )
         print("Database successfully updated locally!")
 
@@ -69,7 +69,7 @@ def build_retriever(docx_file, pptx_file, k):
         vector_store = Chroma.from_documents(
             documents,
             embedding = embedding_function,
-            persist_directory = persist_dir_path,
+            persist_directory = PERSIST_DIR_PATH,
         )
         print("Database successfully built locally!")
 
@@ -103,13 +103,13 @@ def build_vector_store(docx_file, pptx_file):
     embedding_function = GoogleGenerativeAIEmbeddings(model = "gemini-embedding-001")
 
     # Intitialize an chroma database
-    persist_dir_path = os.path.join(os.getcwd(), "chromadb")
+    PERSIST_DIR_PATH = os.path.join(os.getcwd(), "chromadb")
 
     # Loading existing vectorstore
-    if os.path.exists(persist_dir_path) and os.listdir(persist_dir_path):
+    if os.path.exists(PERSIST_DIR_PATH) and os.listdir(PERSIST_DIR_PATH):
         vector_store = Chroma(
         embedding_function= embedding_function,
-        persist_directory= persist_dir_path
+        persist_directory= PERSIST_DIR_PATH
     )
         print("Database successfully updated locally!", file=sys.stderr)
 
@@ -118,7 +118,7 @@ def build_vector_store(docx_file, pptx_file):
         vector_store = Chroma.from_documents(
             documents,
             embedding = embedding_function,
-            persist_directory = persist_dir_path,
+            persist_directory = PERSIST_DIR_PATH,
         )
         print("Database successfully built locally!", file=sys.stderr)
 

@@ -12,7 +12,12 @@ expected_outcomes = [
     {"question":"Which transport protocol uses retransmission and flow control, and which one is described as low overhead?",
      "Source Citation":["tcp_vs_udp.png"],
       "in_notes":True},
-      
+    {"question":"In tcp and udp which offers reliable ordered delivery?",
+    "Source Citation":["tcp_vs_udp.png"], 
+    "in_notes":True},
+    {"question":"What is the payload value in internet frame path?",
+    "Source Citation":["ethernet_frame_path.png"], 
+    "in_notes":True},
 ]
 
 # Loop each outcome in expected_outcomes

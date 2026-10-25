@@ -105,17 +105,21 @@ def Adding_documents_vector_store():
     print(f"Successfully updated {len(documents)} image documents", file = sys.stderr)
     return vector_store
 
-caption_image(IMAGE_DIR)
-vector_store = Adding_documents_vector_store()
+def main():
+    caption_image(IMAGE_DIR)
+    vector_store = Adding_documents_vector_store()
 
-# Fetch record directly by its deterministic ID
-dns_ids = ["dns_lookup_sequence.png", "ethernet_frame_path.png", "tcp_vs_udp.png"]
-record = vector_store.get()
+    # Fetch record directly by its deterministic ID
+    dns_ids = ["dns_lookup_sequence.png", "ethernet_frame_path.png", "tcp_vs_udp.png"]
+    record = vector_store.get()
 
-# Print record details
-for doc_id, meta, text in zip(record['ids'], record['metadatas'], record['documents']):
-    print(f"ID: {doc_id}")
-    print(f"Metadata: {meta}")
-    print(f"Page Content Snippet:\n{text[:300]}...\n")
+    # Print record details
+    for doc_id, meta, text in zip(record['ids'], record['metadatas'], record['documents']):
+        print(f"ID: {doc_id}")
+        print(f"Metadata: {meta}")
+        print(f"Page Content Snippet:\n{text[:300]}...\n")
 
-print(f"TOTAL-DOCS: {vector_store._collection.count()}")
+    print(f"TOTAL-DOCS: {vector_store._collection.count()}")
+
+if __name__ == "__main__":
+    main()

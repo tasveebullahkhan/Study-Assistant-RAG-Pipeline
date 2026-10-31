@@ -9,6 +9,7 @@ A retrieval-augmented generation (RAG) system that answers questions about my Co
 * ✅ Phase 5 — Multimodal RAG
 * ⏳ Phase 6 — AI Safety/red teaming
 * ⏳ Phase 7 — Fine-tuning (Phi-3 mini)
+
 ## Why this project
 Used my own semester's notes so I know whether retrieval and generation actually work or just look like it works. 
  
@@ -23,13 +24,14 @@ Used my own semester's notes so I know whether retrieval and generation actually
 * `retriever_client.py` — Client that is used to validate the working of the MCP server.
 * `multimodal_rag.py` — Captioning all the images and adding them as documents in vector store
 * `evaluate_multimodal.py` —  To check image retrieval quality against a known test
+
 ## Tech Stack
 * langchain-community, langchain-text-splitters, langchain-chroma, langchain-core
 * langchain-google-genai (gemini-embedding-001 for embeddings, gemini-3.1-flash-lite-preview for text generation)
 * ChromaDB (local, persisted)
 * crewai (agent orchestration)
 * Groq API (`qwen/qwen3.8-27b`) — used for the agent layer; landed here after testing Gemini (chat completions hit a free-tier quota wall, so it can't be used in the agent unless a payment method is added), Mistral (free tier proved too unreliable for consistent testing) and Groq's `openai/gpt-oss-120b` (failed the agent evaluation, see Developer Log)
-* LangSmith + OpenTelemetry (opentelemetry-instrumentation-crewai, openinference-instrumentation-litellm) — distributed tracing for both main.py and agent.py
+* LangSmith + OpenTelemetry (openinference-instrumentation-litellm) — distributed tracing for both main.py and agent.py
 * google and google.genai (genai client and types object respectively)
 * Gemini (`[gemini-3.5-flash-lite]`, through `google.genai`) — writes the captions for the diagrams in `multimodal_rag.py`
 
@@ -162,3 +164,4 @@ The three diagrams used (`dns_lookup_sequence.png`, `ethernet_frame_path.png`, `
   * `helpers.py` print statements (used for debug output) were writing to stdout, which `stdio` transport reserves exclusively for JSON-RPC messages — this caused the MCP client to fail parsing responses. Fixed by redirecting those prints to stderr.
   * Upgrading `langsmith` (for OpenTelemetry support) bumped `chromadb` to a version incompatible with `crewai-tools`' pin and broke `main.py`. Since the project code never imports `crewai-tools`, it was removed and the virtual environment rebuilt from a pinned `requirements.txt`.
   * Running `evaluate_multimodal.py` before the images were ingested crashed with a Groq rate-limit error. With nothing to retrieve, the agent searched again and one completion used 989 output tokens. Not a code bug. After ingestion the DNS case passed.
+  * `opentelemetry-instrumentation-crewai` printed a `DependencyConflict` warning and silently did nothing, because it needs `crewai >= 1.0.0` and the project uses `0.157.0`. The traces still looked fine because the LiteLLM instrumentor covers the model calls, so the missing agent-level spans were only noticed by checking what a trace actually contains. Fixed by removing the instrumentor.

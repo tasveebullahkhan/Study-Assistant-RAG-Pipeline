@@ -15,8 +15,6 @@ def setup_tracing():
     provider = TracerProvider()
     trace.set_tracer_provider(provider)
     provider.add_span_processor(OtelSpanProcessor())
-
-    # To trace Agent or task delegations in Crewai
-    CrewAIInstrumentor().instrument(tracer_provider = provider)
+    
     # To trace underlying llm calls made via litellm
     LiteLLMInstrumentor().instrument(tracer_provider = provider)

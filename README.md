@@ -94,10 +94,9 @@ Required a different approach, since CrewAI isn't LangSmith-native and doesn't a
  
 - **Gemini models bypass LiteLLM entirely.** CrewAI doesn't talk to Gemini through LiteLLM — it uses Google's own SDK directly for Gemini calls, so no LiteLLM-based tracing can see them.
 - **Mistral and Groq models route through LiteLLM**, so they can be traced — but LiteLLM's own native tracing option (`litellm.callbacks = ['otel']`) doesn't produce a trace when the call happens inside CrewAI's execution, even for a provider that does use LiteLLM.
-- **Working setup:** two separate instrumentors, since CrewAI's own execution (agents, tasks) and the underlying LiteLLM completion call are two different things to trace — `CrewAIInstrumentor` (from `opentelemetry-instrumentation-crewai`) watches agent/task-level execution, and `LiteLLMInstrumentor` (from `openinference-instrumentation-litellm`) watches the actual LLM calls (model, tokens, cost). Both are wired to a shared `TracerProvider` pointed at LangSmith.
-- Tracing setup lives in a standalone `observability.py` (a single `setup_tracing()` function), kept separate from `agent.py`'s actual business logic.
-- **Known warning:** every `agent.py` run prints a `DependencyConflict` message at startup (requested `crewai >= 1.0.0`, found `crewai 0.157.0`).
-Currently using Groq as the traced provider.
+- **Working setup:** `LiteLLMInstrumentor` (from `openinference-instrumentation-litellm`) watches the actual LLM calls (model, tokens, cost) and is wired to a `TracerProvider` pointed at LangSmith. The retriever call also appears as its own span.
+
+- **Tried and dropped:** `CrewAIInstrumentor` (from `opentelemetry-instrumentation-crewai`) was meant to add agent- and task-level spans, but it requires `crewai >= 1.0.0` and the project runs `crewai 0.157.0`, so it never attached (it printed a `DependencyConflict` warning on every run and produced no spans). It was removed rather than upgrading `crewai`, to avoid changing the framework under an agent whose evaluations were already validated. As a result, traces show the LLM calls and the retriever but no crew, agent or task spans.
  
 ## Multimodal-RAG (Phase-5)
 The three diagrams used (`dns_lookup_sequence.png`, `ethernet_frame_path.png`, `tcp_vs_udp.png`) are AI-generated, not course material, and some of their labels are garbled.

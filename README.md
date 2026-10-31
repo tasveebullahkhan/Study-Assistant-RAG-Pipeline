@@ -31,7 +31,8 @@ Used my own semester's notes so I know whether retrieval and generation actually
 * Groq API (`qwen/qwen3.8-27b`) — used for the agent layer; landed here after testing Gemini (chat completions hit a free-tier quota wall, so it can't be used in the agent unless a payment method is added), Mistral (free tier proved too unreliable for consistent testing) and Groq's `openai/gpt-oss-120b` (failed the agent evaluation, see Developer Log)
 * LangSmith + OpenTelemetry (opentelemetry-instrumentation-crewai, openinference-instrumentation-litellm) — distributed tracing for both main.py and agent.py
 * google and google.genai (genai client and types object respectively)
-* Gemini (`[CAPTION_MODEL_NAME]`, through `google.genai`) — writes the captions for the diagrams in `multimodal_rag.py`
+* Gemini (`[gemini-3.5-flash-lite]`, through `google.genai`) — writes the captions for the diagrams in `multimodal_rag.py`
+
 ## Pipeline
 * Documents (.docx, .pptx) and diagrams (.png)
 * Loaders (UnstructuredWordDocumentLoader, UnstructuredPowerPointLoader)
@@ -43,6 +44,7 @@ Used my own semester's notes so I know whether retrieval and generation actually
 * `format_docs()` — attaches source filename to each retrieved chunk (images cite the original .png)
 * Prompt (instructs the model to cite the exact source filename, no guessing)
 * LLM → Answer + Sources
+
 ## Running it
 1. Set the required API keys in a `.env` file:
    - `GOOGLE_API_KEY=...` (embeddings, used by `main.py` and `helpers.py`; also image captioning in `multimodal_rag.py`)
@@ -53,9 +55,11 @@ Used my own semester's notes so I know whether retrieval and generation actually
 4. Run `main.py` for the core RAG assistant, or `agent.py` for the agent layer with tool-use judgment, conversational memory, and LangSmith tracing — first run builds and persists the vector store, subsequent runs load the existing one.
 5. Run `multimodal_rag.py` after `main.py` or `agent.py` for image ingestion. Images must be in the images folder, captions get generated from them and stored in caption folder. If the database is deleted and rebuild the image documents are gone so image ingestion must be rerun after rebuild
 6. Run everything from the project root because the vector store path depends on the directory from which it is launched.
+
 ## main.py: Design decisions & Source material (Phase-1)
 * **Source material:** `CN_Logical_IPv4_IPv6_Notes.docx` (logical addressing, IPv4/IPv6 addressing and packet structure, transition mechanisms) and `Hub, Switch and Router.pptx` (device comparison across OSI layers, functionality, advantages/disadvantages). Two different formats deliberately, to force the loader and chunking logic to handle more than one document type.
 * **Chunking:** Different chunk settings per format. The docx are chunked at 2000 chars with 200 overlap so multi-part explanations don't get cut off mid-concept. The pptx slides are short, so it's chunked smaller 1000 chars with no overlap. 10% rule of the chunk_size is applied for chunk overlap.
+
 ## Agent Layer (Phase-2)
 `agent.py` adds a CrewAI agent that decides for itself whether a question needs course notes to answer or can be answered from general knowledge, and states whether the answer was from course notes or general knowledge to avoid blending as if it were grounded.
 * The agent retrieves top 2 k chunks (k=2) and there is no special cutoff case as in MCP Server (read phase 3 for more understanding).
@@ -68,6 +72,7 @@ Used my own semester's notes so I know whether retrieval and generation actually
   - **Mistral** replaced Gemini and held up well for early multi-turn testing and evaluation (see the rate-limit note in the Developer Log below for the tool-call-related limits hit at that stage). It stayed the default provider through Phase 3.
   - During **Phase 4** observability work, Mistral's free tier started returning frequent, unexplained `429 Rate limit exceeded` errors — even after long idle periods with zero other traffic. Mistral's own support confirmed this is expected: free-tier access is best-effort with no reserved capacity, so requests can be rejected regardless of actual usage or timing.
   - Given that unpredictability made consistent testing impossible, the agent was switched to **Groq**, first with `openai/gpt-oss-120b`. That model failed the agent evaluation that Mistral had passed (see Testing & Evaluation and the Developer Log), so the agent now runs on `qwen/qwen3.8-27b`, also on Groq, where the evaluation passes again.
+
 ## MCP Server (Phase-3)
 `retriever_server.py` adds an MCP server. The server consists of a tool (`notes_retriever`) that retrieves chunks on the basis of similarity. This tool only covers retrieval, not the whole agent. The purpose isn't to give LLM-generated output — the client already has its own model for that — so the retrieved chunks themselves carry more value than a synthesized answer would. That's why only retrieval was wrapped as a tool, not the full agent.
  
@@ -105,12 +110,14 @@ The three diagrams used (`dns_lookup_sequence.png`, `ethernet_frame_path.png`, `
 * **ID-selection** filename is id so rerunning ingestion doesn't create duplicates.
 * **No image-rebuilt** If chromadb is deleted and rebuilt the image documents are lost so need to rerun ingestion again.
 * **No query-side change** The tools, agent and format_docs find the image documents as they were so no need to change them.
+
 ## Testing & Evaluation
 ### Base Retrieval (`evaluate.py`)
 * To check the retrievals correctness `evaluate.py` is used. It checks that the retrieved sources and expected sources matches each other, so the retrieved information is from the correct source. 
 * It checks on the basis of presence(uniqueness) of source not how many times the source is actually used. So even if the source is used more than once due to multiple chunks using the source multiple times it wouldn't matter and ignore those duplicates or order.
 * There are 4 single source cases and one multiple source case. Current result is "5/5 Passed".
 * This is just a simple hand-built metric not a sophisticated LLM-graded eval like RAGAS.
+
 ### Agent Evaluation (`evaluate_agent.py`)
 * To check the agents' correctness `evaluate_agent.py` is used. It first checks whether answer is found in our course notes or not on the basis of which it tells us if answer is from course notes or general knowledge. It then checks if the source cited is "General Knowledge (External)" for an outcome on the basis of that tell us whether answer is from general knowledge or not. Finally, if both cases are true test is passed otherwise failed.
 * There are total 5 cases 4 single source cases and one multiple source case (Among 4 single source cases 2 are "in_notes" cases and two are "not-in-notes" cases. The multiple source case contains both notes files).
@@ -119,9 +126,11 @@ The three diagrams used (`dns_lookup_sequence.png`, `ethernet_frame_path.png`, `
   - **Groq `openai/gpt-oss-120b`** (early Phase 4): regressed. Almost all cases failed and only the IPv4 case passed. Failure types: empty LLM responses, source filenames not matching exactly, and output not following the expected format.
   - **Groq `qwen/qwen3.8-27b`** (current): passes again, matching the Mistral-era result. Each case is still run separately because of the rate limits discussed below.
 * To execute the test run `python evaluate_agent.py`.
+
 ### MCP Tool Testing (`retriever_client.py`)
 * To validate the working of our MCP server I made this client which has two functions one to just list tool and other to call the tool and get its output from MCP server. Its purpose is to just test the working of the server thus query is hardcoded, but you can enter any query in the key to test its working. The queries in scope of notes that I used to validate are "What is IPv4?" and "What is a router?". The query "How does a router's use of IP addresses relate to logical addressing and how is that different from how a switch uses MAC addresses?" test across all the files of the course notes. The queries that were out of scope are "What is BGP?" and "What is cooking recipe of burger?" (Even though BGP is related to computer networks it is not covered in the course notes so keep that in mind).
 * After the images were added (Phase 5), the DNS lookup question returned the diagram's caption with `dns_lookup_sequence.png` as its citation, and "What is BGP?" still returned the scope message.
+
 ### Multimodal RAG Evaluation (evaluate_multimodal.py)
 * It tests whether a question that can only be answered from a diagram makes the agent cite the right file. The cases are in separate file `evaluate_multimodal.py`.
 * There are total 5 cases each image filename as the expected sources. The first 3 image cases are from LLM and lean toward images that's why two more questions were added by myself.
@@ -132,6 +141,7 @@ The three diagrams used (`dns_lookup_sequence.png`, `ethernet_frame_path.png`, `
 * No out of scope check is here because it is already covered in MCP tool check
 * The diagrams are few so it shows the approach works on these three diagrams.
 * **Retrieval-level-test** images top scores were 0.56 to 0.66 and for the out-of-scope (BGP test) score was 0.48. 
+
 ## Developer Log: Limitations & Bugs
 * **A real limitation I found (Content Gap vs Bug):** While testing retrieval quality for the question "What is a MAC address?" I only found one result that was actually relevant the rest were not. The reason was not the "search_type" or retrieval bug, but it was because the documents itself did not contain enough of the information about MAC addressing. This was the reason why I used files of my own and that is the why of the project. Changing the "search_type" would not fix anything if the material itself was not enough. This is because when I tested on a different question like "What is the difference between IPv4 and IPv6" with the same settings it returned three actually very relevant results. Same pipeline different results. Documenting this because it actually helps me understand the difference between pipeline bug and content gap.
   
